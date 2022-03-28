@@ -8,6 +8,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -63,7 +64,7 @@ type license struct {
 	License string `json:"license"`
 }
 
-func warp(w http.ResponseWriter) {
+func warp(w http.ResponseWriter, c *gin.Context) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "Server does not support Flusher!",
@@ -71,7 +72,16 @@ func warp(w http.ResponseWriter) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/event-stream")
+	ua := c.Request.UserAgent()
+
+	fmt.Println(ua)
+
+	if strings.Contains(ua, "Firefox/") {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	} else {
+		w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
+	}
+
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	if err := doRequests(w, flusher); err != nil {
@@ -84,7 +94,7 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 	r.GET("/", func(c *gin.Context) {
-		warp(c.Writer)
+		warp(c.Writer, c)
 	})
 	log.Fatal(r.Run())
 }

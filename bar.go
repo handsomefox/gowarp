@@ -17,7 +17,7 @@ type Bar struct {
 func (bar *Bar) New(start, total int64) {
 	bar.cur = start
 	bar.total = total
-	bar.graph = "#"
+	bar.graph = "█"
 	bar.percent = bar.getPercent()
 	for i := 0; i < int(bar.percent); i += 2 {
 		bar.rate += bar.graph
