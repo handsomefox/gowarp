@@ -1,0 +1,18 @@
+# Docker Compose file Reference (https://docs.docker.com/compose/compose-file/)
+
+version: '3'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    networks:
+      # Networks to join (Services on the same network can communicate with each other using their name)
+      - backend
+
+networks:
+  backend:
