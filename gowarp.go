@@ -5,28 +5,13 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"log"
 	"math/rand"
 	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
-
-type Response struct {
-	Type     string      `json:"account_type"`
-	RefCount json.Number `json:"referral_count"`
-	License  string      `json:"license"`
-}
-
-type Account struct {
-	License string `json:"license"`
-}
-
-type Registered struct {
-	Id      string  `json:"id"`
-	Account Account `json:"account"`
-	Token   string  `json:"token"`
-}
 
 var keys = []string{
 	"7f625kCI-cB450gH1-G586eSA3",
@@ -57,8 +42,42 @@ var client = &http.Client{
 	},
 }
 
+type Result struct {
+	Type     string      `json:"account_type"`
+	RefCount json.Number `json:"referral_count"`
+	License  string      `json:"license"`
+}
+
+type Account struct {
+	Id      string  `json:"id"`
+	Account license `json:"account"`
+	Token   string  `json:"token"`
+}
+
+type CreatedAccounts struct {
+	First  *Account
+	Second *Account
+}
+
+type license struct {
+	License string `json:"license"`
+}
+
 func warp(w http.ResponseWriter) {
-	doWork(w)
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "Server does not support Flusher!",
+			http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	if err := doRequests(w, flusher); err != nil {
+		_, _ = fmt.Fprintln(w, err)
+		return
+	}
 }
 
 func main() {
@@ -70,197 +89,177 @@ func main() {
 	log.Fatal(r.Run())
 }
 
-func doWork(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Server does not support Flusher!",
-			http.StatusInternalServerError)
-		return
-	}
-
+func doRequests(w http.ResponseWriter, flusher http.Flusher) error {
 	bar := Bar{
 		Writer: &w,
 	}
 	bar.New(0, 100)
-	bar.Play(0)
-
-	acc1, err := Register()
 	UpdateProgressBar(&bar, 0, flusher)
-	if err != nil {
-		fmt.Fprintln(w, err)
-		return
-	}
 
-	acc2, err := Register()
+	accounts, err := createAccounts(w)
+	if err != nil {
+		return err
+	}
 	UpdateProgressBar(&bar, 10, flusher)
-	if err != nil {
-		fmt.Fprintln(w, err)
-		return
-	}
-
-	payload, _ := json.Marshal(map[string]interface{}{
-		"referrer": acc2.Id,
-	})
-	url := baseURL + fmt.Sprintf("/reg/%s", acc1.Id)
-	patchRequest, err := http.NewRequest("PATCH", url, bytes.NewBuffer(payload))
-	if err != nil {
-		fmt.Fprintln(w, err)
-		return
-	}
-	patchRequest.Header.Set("Content-Type", "application/json; charset=UTF-8")
-	patchRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %s", acc1.Token))
-
-	_, err = client.Do(patchRequest)
-	if err != nil {
-		fmt.Fprintln(w, err)
-		return
-	}
 	UpdateProgressBar(&bar, 20, flusher)
 
-	url = baseURL + fmt.Sprintf("/reg/%s", acc2.Id)
-	deleteRequest, err := http.NewRequest("DELETE", url, nil)
-	if err != nil {
-		fmt.Fprintln(w, err)
-		return
-	}
-
-	deleteRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %s", acc2.Token))
-	_, err = client.Do(deleteRequest)
-	if err != nil {
-		fmt.Fprintln(w, err)
-		return
+	if err := addReferrer(accounts); err != nil {
+		return err
 	}
 	UpdateProgressBar(&bar, 30, flusher)
 
-	key := keys[rand.Intn(len(keys))]
-	payload, _ = json.Marshal(map[string]interface{}{
-		"license": key,
-	})
-	url = baseURL + fmt.Sprintf("/reg/%s/account", acc1.Id)
-	putRequest, err := http.NewRequest("PUT", url, bytes.NewBuffer(payload))
-	if err != nil {
-		fmt.Fprintln(w, err)
-		return
-	}
-
-	putRequest.Header.Set("Content-Type", "application/json; charset=UTF-8")
-	putRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %s", acc1.Token))
-	_, err = client.Do(putRequest)
-	if err != nil {
-		fmt.Fprintln(w, err)
-		return
+	if err := deleteSecondAccount(accounts); err != nil {
+		return err
 	}
 	UpdateProgressBar(&bar, 40, flusher)
 
-	payload, _ = json.Marshal(map[string]interface{}{
-		"license": key,
-	})
-	url = baseURL + fmt.Sprintf("/reg/%s/account", acc1.Id)
-	putRequest, err = http.NewRequest("PUT", url, bytes.NewBuffer(payload))
-	if err != nil {
-		fmt.Fprintln(w, err)
-		return
-	}
-
-	putRequest.Header.Set("Content-Type", "application/json; charset=UTF-8")
-	putRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %s", acc1.Token))
-	_, err = client.Do(putRequest)
-	if err != nil {
-		fmt.Fprintln(w, err)
-		return
-	}
+	key := keys[rand.Intn(len(keys))]
 	UpdateProgressBar(&bar, 50, flusher)
 
-	payload, _ = json.Marshal(map[string]interface{}{
-		"license": acc1.Account.License,
-	})
-	url = baseURL + fmt.Sprintf("/reg/%s/account", acc1.Id)
-	putRequest, err = http.NewRequest("PUT", url, bytes.NewBuffer(payload))
-	if err != nil {
-		fmt.Fprintln(w, err)
-		return
-	}
-
-	putRequest.Header.Set("Content-Type", "application/json; charset=UTF-8")
-	putRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %s", acc1.Token))
-	_, err = client.Do(putRequest)
-	if err != nil {
-		fmt.Fprintln(w, err)
-		return
+	if err := setFirstAccountKey(key, accounts); err != nil {
+		return err
 	}
 	UpdateProgressBar(&bar, 60, flusher)
 
-	url = baseURL + fmt.Sprintf("/reg/%s/account", acc1.Id)
-	getRequest, err := http.NewRequest("GET", url, nil)
+	resp, err := getLicenseInformation(accounts)
 	if err != nil {
-		fmt.Fprintln(w, err)
-		return
-	}
-	getRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %s", acc1.Token))
-	resp, err := client.Do(getRequest)
-	if err != nil {
-		fmt.Fprintln(w, err)
-		return
+		return err
 	}
 	UpdateProgressBar(&bar, 70, flusher)
 
-	var result Response
-	err = toJSON(resp, &result)
+	result, err := getResult(resp)
 	if err != nil {
-		fmt.Fprintln(w, err)
-		return
+		return err
 	}
 	UpdateProgressBar(&bar, 80, flusher)
 
-	url = baseURL + fmt.Sprintf("/reg/%s", acc1.Id)
-	deleteRequest, err = http.NewRequest("DELETE", url, nil)
-	if err != nil {
-		fmt.Fprintln(w, err)
-		return
-	}
-	deleteRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %s", acc1.Token))
-	_, err = client.Do(deleteRequest)
-	if err != nil {
-		fmt.Fprintln(w, err)
-		return
+	if err := deleteAccount(accounts); err != nil {
+		return err
 	}
 	UpdateProgressBar(&bar, 90, flusher)
 
 	out := fmt.Sprintf("\n\nAccount type: %s\nData available: %sGB\nLicense: %s\n", result.Type, result.RefCount.String(), result.License)
-	fmt.Fprintln(w, out)
+	_, _ = fmt.Fprintln(w, out)
+	return nil
 }
 
-func Register() (Registered, error) {
+func Register() (*Account, error) {
 	req, err := http.NewRequest("POST", baseURL+"/reg", nil)
-
 	req.Header.Add("CF-Client-Version", "a-6.3-1922")
 	req.Header.Add("User-Agent", "okhttp/3.12.1")
 
 	if err != nil {
 		fmt.Println(err)
-		return Registered{}, err
+		return nil, err
 	}
 
 	resp, err := client.Do(req)
-
 	if err != nil {
 		fmt.Println(err)
-		return Registered{}, err
+		return nil, err
 	}
 
-	var reg Registered
+	var reg Account
 	err = toJSON(resp, &reg)
 
 	if err != nil {
 		fmt.Println(err)
-		return Registered{}, err
+		return nil, err
 	}
 
-	return reg, err
+	return &reg, err
+}
+
+func createAccounts(w http.ResponseWriter) (*CreatedAccounts, error) {
+	acc1, err := Register()
+	if err != nil {
+		_, _ = fmt.Fprintln(w, err)
+		return nil, err
+	}
+
+	acc2, err := Register()
+	if err != nil {
+		_, _ = fmt.Fprintln(w, err)
+		return nil, err
+	}
+	return &CreatedAccounts{
+		First:  acc1,
+		Second: acc2,
+	}, nil
+}
+
+func addReferrer(accounts *CreatedAccounts) error {
+	payload, _ := json.Marshal(map[string]interface{}{
+		"referrer": accounts.Second.Id,
+	})
+	url := baseURL + fmt.Sprintf("/reg/%s", accounts.First.Id)
+	patchRequest, err := http.NewRequest("PATCH", url, bytes.NewBuffer(payload))
+	if err != nil {
+		return err
+	}
+	patchRequest.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	patchRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accounts.First.Token))
+
+	_, err = client.Do(patchRequest)
+	return err
+}
+
+func deleteSecondAccount(accounts *CreatedAccounts) error {
+	url := baseURL + fmt.Sprintf("/reg/%s", accounts.Second.Id)
+	deleteRequest, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		return err
+	}
+
+	deleteRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accounts.Second.Token))
+	_, err = client.Do(deleteRequest)
+	return err
+}
+
+func setFirstAccountKey(key string, accounts *CreatedAccounts) error {
+	payload, _ := json.Marshal(map[string]interface{}{
+		"license": key,
+	})
+	url := baseURL + fmt.Sprintf("/reg/%s/account", accounts.First.Id)
+	putRequest, err := http.NewRequest("PUT", url, bytes.NewBuffer(payload))
+	if err != nil {
+		return err
+	}
+
+	putRequest.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	putRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accounts.First.Token))
+	_, err = client.Do(putRequest)
+	return err
+}
+
+func getLicenseInformation(accounts *CreatedAccounts) (*http.Response, error) {
+	url := baseURL + fmt.Sprintf("/reg/%s/account", accounts.First.Id)
+	getRequest, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	getRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accounts.First.Token))
+	return client.Do(getRequest)
+}
+
+func getResult(resp *http.Response) (*Result, error) {
+	var result Result
+	err := toJSON(resp, &result)
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func deleteAccount(accounts *CreatedAccounts) error {
+	url := baseURL + fmt.Sprintf("/reg/%s", accounts.First.Id)
+	deleteRequest, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		return err
+	}
+	deleteRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accounts.First.Token))
+	_, err = client.Do(deleteRequest)
+	return err
 }
 
 func toJSON(r *http.Response, target interface{}) error {

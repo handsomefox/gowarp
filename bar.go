@@ -38,7 +38,7 @@ func (bar *Bar) Play(cur int64) {
 }
 
 func (bar *Bar) Flush() {
-	fmt.Fprintf(*bar.Writer, "\r[%-50s]%3d%% %8d/%d", bar.rate, bar.percent, bar.cur, bar.total)
+	_, _ = fmt.Fprintf(*bar.Writer, "\r[%-50s]%3d%% %8d/%d", bar.rate, bar.percent, bar.cur, bar.total)
 }
 
 func UpdateProgressBar(bar *Bar, count int64, w http.Flusher) {
