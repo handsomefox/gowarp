@@ -74,8 +74,6 @@ func warp(w http.ResponseWriter, c *gin.Context) {
 
 	ua := c.Request.UserAgent()
 
-	fmt.Println(ua)
-
 	if strings.Contains(ua, "Firefox/") {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	} else {
