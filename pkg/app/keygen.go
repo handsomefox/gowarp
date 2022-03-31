@@ -1,11 +1,10 @@
-package keygen
+package app
 
 import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"gowarp/internal/progressbar"
 	"math/rand"
 	"net/http"
 	"time"
@@ -27,7 +26,7 @@ var keys = []string{
 const baseURL = "https://api.cloudflareclient.com/v0a1922"
 
 func Generate(w http.ResponseWriter, flusher http.Flusher) error {
-	pb := progressbar.Progressbar{
+	pb := Progressbar{
 		Writer:  w,
 		Flusher: flusher,
 	}
