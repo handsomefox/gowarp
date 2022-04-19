@@ -1,37 +1,35 @@
-package app
+package keygen
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"gowarp/pkg/progressbar"
 	"math/rand"
 	"net/http"
-	"time"
+)
+
+const (
+	cfClientVersion = "a-6.3-2223"
+	userAgent       = "okhttp/3.12.1"
+	baseURL         = "https://api.cloudflareclient.com/v0a2223"
 )
 
 var keys = []string{
-	"7f625kCI-cB450gH1-G586eSA3",
-	"3791MrNh-f5736byE-u12i6zW3",
-	"m07O3Zf2-Z69CB71z-547fows8",
-	"6a80lV4c-aj39v02s-6mJp2b54",
-	"6Sh1X0W2-W61F9Da4-6Jw02cA3",
-	"9tZJ0W58-62a93xUu-I926xq1P",
-	"p07riY35-92j35Mdb-Dt857b2P",
-	"E6Oq5h01-1Vc0x4d9-u4v0J13E",
-	"1R2wl6c0-t16p5qm4-rh01E73L",
-	"78H9Mfk2-1u7N5k4T-nq50K1M8",
+	"47d58Hqv-ueR37x50-db3l70n2",
+	"bwK01o62-c15C78MH-Z2g5Ji74",
+	"c3Dd52l4-K28SzY14-0wKO47c8",
+	"Vq765xO8-TR392VI5-z4j6Xp28",
+	"3C651Aqt-3PHl50V7-3751AOCb",
+	"WE38q17B-25DP3um4-9A7xg48Z",
+	"x0yZ894a-3Sh2b90q-718Wrw4A",
+	"3z1tW5s7-03L78SFw-6w2T9F4c",
+	"bkp5301R-VDB6234t-x954U8Jb",
+	"ofQ759g4-9628GDiy-6i58VGa2",
 }
 
-const baseURL = "https://api.cloudflareclient.com/v0a1922"
-
 func Generate(w http.ResponseWriter, flusher http.Flusher) error {
-	pb := Progressbar{
-		Writer:  w,
-		Flusher: flusher,
-	}
-	pb.Init(0, 100)
-	pb.Update(0)
+	pb := progressbar.New(w, flusher)
 
 	kg := keygen{
 		client: createClient(),
@@ -82,49 +80,6 @@ func Generate(w http.ResponseWriter, flusher http.Flusher) error {
 	return nil
 }
 
-type keygen struct {
-	accounts *createdAccounts
-	client   *http.Client
-	writer   http.ResponseWriter
-}
-
-type result struct {
-	Type     string      `json:"account_type"`
-	RefCount json.Number `json:"referral_count"`
-	License  string      `json:"license"`
-}
-
-type createdAccounts struct {
-	First  *account
-	Second *account
-}
-
-type account struct {
-	Id      string  `json:"id"`
-	Account license `json:"account"`
-	Token   string  `json:"token"`
-}
-
-type license struct {
-	License string `json:"license"`
-}
-
-func createClient() *http.Client {
-	return &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				MinVersion: tls.VersionTLS12,
-				MaxVersion: tls.VersionTLS12},
-			ForceAttemptHTTP2:     false,
-			Proxy:                 http.ProxyFromEnvironment,
-			MaxIdleConns:          100,
-			IdleConnTimeout:       90 * time.Second,
-			TLSHandshakeTimeout:   10 * time.Second,
-			ExpectContinueTimeout: 1 * time.Second,
-		},
-	}
-}
-
 func (kg *keygen) createAccounts() error {
 	acc1, err := kg.register()
 	if err != nil {
@@ -146,8 +101,8 @@ func (kg *keygen) createAccounts() error {
 
 func (kg *keygen) register() (*account, error) {
 	req, err := http.NewRequest("POST", baseURL+"/reg", nil)
-	req.Header.Add("CF-Client-Version", "a-6.3-1922")
-	req.Header.Add("User-Agent", "okhttp/3.12.1")
+	req.Header.Add("CF-Client-Version", cfClientVersion)
+	req.Header.Add("User-Agent", userAgent)
 
 	if err != nil {
 		fmt.Println(err)
@@ -261,8 +216,4 @@ func (kg *keygen) deleteAccount() error {
 	deleteRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %s", kg.accounts.First.Token))
 	_, err = kg.client.Do(deleteRequest)
 	return err
-}
-
-func toJSON(r *http.Response, target interface{}) error {
-	return json.NewDecoder(r.Body).Decode(target)
 }

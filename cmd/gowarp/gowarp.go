@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"gowarp/pkg/app"
+	"gowarp/pkg/keygen"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 func warp(c *gin.Context) {
@@ -26,7 +27,7 @@ func warp(c *gin.Context) {
 	}
 	c.Writer.Header().Set("Cache-Control", "no-cache")
 	c.Writer.Header().Set("Connection", "keep-alive")
-	if err := app.Generate(c.Writer, flusher); err != nil {
+	if err := keygen.Generate(c.Writer, flusher); err != nil {
 		_, _ = fmt.Fprintln(c.Writer, err)
 		return
 	}

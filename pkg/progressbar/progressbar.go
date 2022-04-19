@@ -1,4 +1,4 @@
-package app
+package progressbar
 
 import (
 	"fmt"
@@ -8,6 +8,7 @@ import (
 type Progressbar struct {
 	Writer  http.ResponseWriter
 	Flusher http.Flusher
+
 	percent int64
 	cur     int64
 	total   int64
@@ -15,14 +16,14 @@ type Progressbar struct {
 	graph   string
 }
 
-func (bar *Progressbar) Init(start, total int64) {
-	bar.cur = start
-	bar.total = total
-	bar.graph = "█"
-	bar.percent = bar.getPercent()
-	for i := 0; i < int(bar.percent); i += 2 {
-		bar.rate += bar.graph
+func New(w http.ResponseWriter, f http.Flusher) *Progressbar {
+	pb := &Progressbar{
+		Writer:  w,
+		Flusher: f,
 	}
+	pb.init(0, 100)
+	pb.Update(0)
+	return pb
 }
 
 func (bar *Progressbar) Update(count int64) {
@@ -31,6 +32,16 @@ func (bar *Progressbar) Update(count int64) {
 	}
 	bar.flush()
 	bar.Flusher.Flush()
+}
+
+func (bar *Progressbar) init(start, total int64) {
+	bar.cur = start
+	bar.total = total
+	bar.graph = "█"
+	bar.percent = bar.getPercent()
+	for i := 0; i < int(bar.percent); i += 2 {
+		bar.rate += bar.graph
+	}
 }
 
 func (bar *Progressbar) getPercent() int64 {
