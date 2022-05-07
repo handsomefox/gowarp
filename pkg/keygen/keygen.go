@@ -76,7 +76,7 @@ func Generate(w http.ResponseWriter, flusher http.Flusher) error {
 	out := fmt.Sprintf("\n\nAccount type: %s\nData available: %sGB\nLicense: %s\n", result.Type, result.RefCount.String(), result.License)
 	pb.Update(90)
 
-	_, _ = fmt.Fprintln(w, out)
+	fmt.Fprintln(w, out)
 	return nil
 }
 

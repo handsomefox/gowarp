@@ -5,39 +5,33 @@ import (
 	"gowarp/pkg/keygen"
 	"log"
 	"net/http"
+	"os"
 	"strings"
-
-	"github.com/gin-gonic/gin"
 )
 
-func warp(c *gin.Context) {
-	flusher, ok := c.Writer.(http.Flusher)
+func warp(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := w.(http.Flusher)
 	if !ok {
-		http.Error(c.Writer, "Server does not support Flusher!",
-			http.StatusInternalServerError)
+		http.Error(w, "Server does not support Flusher!", http.StatusInternalServerError)
 		return
 	}
 
-	ua := c.Request.UserAgent()
+	ua := r.UserAgent()
 
 	if strings.Contains(ua, "Firefox/") {
-		c.Writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	} else {
-		c.Writer.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
+		w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
 	}
-	c.Writer.Header().Set("Cache-Control", "no-cache")
-	c.Writer.Header().Set("Connection", "keep-alive")
-	if err := keygen.Generate(c.Writer, flusher); err != nil {
-		_, _ = fmt.Fprintln(c.Writer, err)
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	if err := keygen.Generate(w, flusher); err != nil {
+		fmt.Fprintln(w, err)
 		return
 	}
 }
 
 func main() {
-	gin.SetMode(gin.ReleaseMode)
-	r := gin.Default()
-	r.GET("/", func(c *gin.Context) {
-		warp(c)
-	})
-	log.Fatal(r.Run())
+	http.HandleFunc("/", warp)
+	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), nil))
 }
