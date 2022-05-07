@@ -41,7 +41,6 @@ var headers = http.Header{
 	"Host":              []string{host},
 	"CF-Client-Version": []string{cfClientVersion},
 	"User-Agent":        []string{userAgent},
-	"Connection":        []string{"Keep-Alive"},
 	"Accept-Encoding":   []string{"gzip"},
 }
 
@@ -90,7 +89,6 @@ func Generate(w http.ResponseWriter, r *http.Request) error {
 	}
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
-
 	pb := progressbar.New(w, flusher)
 	pb.Update(10)
 
