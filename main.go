@@ -5,6 +5,7 @@ import (
 	"gowarp/pkg/warpgen"
 	"log"
 	"net/http"
+	"os"
 )
 
 func warp(w http.ResponseWriter, r *http.Request) {
@@ -16,5 +17,5 @@ func warp(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	http.HandleFunc("/", warp)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), nil))
 }
