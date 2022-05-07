@@ -6,57 +6,56 @@ import (
 )
 
 type Progressbar struct {
-	Writer  http.ResponseWriter
-	Flusher http.Flusher
-
-	percent int64
-	cur     int64
-	total   int64
+	writer  http.ResponseWriter
+	flusher http.Flusher
+	percent int
+	current int
+	total   int
 	rate    string
 	graph   string
 }
 
 func New(w http.ResponseWriter, f http.Flusher) *Progressbar {
 	pb := &Progressbar{
-		Writer:  w,
-		Flusher: f,
+		current: 0,
+		total:   100,
+		graph:   "█",
+		writer:  w,
+		flusher: f,
 	}
-	pb.init(0, 100)
-	pb.Update(0)
+	pb.init()
 	return pb
 }
 
-func (bar *Progressbar) Update(count int64) {
+func (b *Progressbar) Update(count int) {
 	for i := 1; i <= 10; i++ {
-		bar.play(count + int64(i))
+		b.play(count + i)
 	}
-	bar.flush()
-	bar.Flusher.Flush()
+	b.flush()
+	b.flusher.Flush()
 }
 
-func (bar *Progressbar) init(start, total int64) {
-	bar.cur = start
-	bar.total = total
-	bar.graph = "█"
-	bar.percent = bar.getPercent()
-	for i := 0; i < int(bar.percent); i += 2 {
-		bar.rate += bar.graph
+func (b *Progressbar) init() {
+	b.percent = b.getPercent()
+	for i := 0; i < b.percent; i += 2 {
+		b.rate += b.graph
 	}
+	b.Update(0)
 }
 
-func (bar *Progressbar) getPercent() int64 {
-	return int64(float32(bar.cur) / float32(bar.total) * 100)
+func (b *Progressbar) getPercent() int {
+	return int(float32(b.current) / float32(b.total) * 100)
 }
 
-func (bar *Progressbar) play(cur int64) {
-	bar.cur = cur
-	last := bar.percent
-	bar.percent = bar.getPercent()
-	if bar.percent != last && bar.percent%2 == 0 {
-		bar.rate += bar.graph
+func (b *Progressbar) play(cur int) {
+	b.current = cur
+	last := b.percent
+	b.percent = b.getPercent()
+	if b.percent != last && b.percent%2 == 0 {
+		b.rate += b.graph
 	}
 }
 
-func (bar *Progressbar) flush() {
-	_, _ = fmt.Fprintf(bar.Writer, "\r[%-50s]%3d%% %8d/%d", bar.rate, bar.percent, bar.cur, bar.total)
+func (b *Progressbar) flush() {
+	fmt.Fprintf(b.writer, "\r[%-50s]%3d%% %8d/%d", b.rate, b.percent, b.current, b.total)
 }
