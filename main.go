@@ -5,17 +5,16 @@ import (
 	"gowarp/pkg/warpgen"
 	"log"
 	"net/http"
-	"os"
 )
 
 func warp(w http.ResponseWriter, r *http.Request) {
 	if err := warpgen.Generate(w, r); err != nil {
-		fmt.Fprintln(w, err)
+		fmt.Fprintf(w, "\nError when creating keys: %v\n", err)
 		return
 	}
 }
 
 func main() {
 	http.HandleFunc("/", warp)
-	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), nil))
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
