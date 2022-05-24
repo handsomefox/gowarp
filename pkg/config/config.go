@@ -5,6 +5,7 @@ const (
 	UserAgent       = "okhttp/3.12.1"
 	Host            = "api.cloudflareclient.com"
 	BaseURL         = "https://api.cloudflareclient.com/v0a2355"
+	RingSize        = 20
 )
 
 var Keys = []string{
