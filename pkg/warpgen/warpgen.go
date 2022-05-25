@@ -32,7 +32,7 @@ func Generate(w http.ResponseWriter, r *http.Request) error {
 	stashedData := getFromStash()
 	if stashedData != nil {
 		fmt.Println("Got key from stash")
-		str := fmt.Sprintf("\n\nAccount type: %v\nData available: %vGB\nLicense: %v\n",
+		str := fmt.Sprintf("Account type: %v\nData available: %vGB\nLicense: %v\n",
 			stashedData.Type, stashedData.RefCount, stashedData.License)
 
 		fmt.Fprint(w, str)
