@@ -11,11 +11,16 @@ import (
 )
 
 func init() {
+	config.FetchKeys()
 	go refillStash()
 	// background task for refilling as well
 	go func() {
 		time.Sleep(2 * time.Hour)
 		refillStash()
+	}()
+	go func() {
+		time.Sleep(24 * time.Hour)
+		config.FetchKeys()
 	}()
 }
 
@@ -61,7 +66,7 @@ func Generate(w http.ResponseWriter, r *http.Request) error {
 	}
 	pb.Update(50)
 
-	if err := acc1.setKey(client, config.Keys[rand.Intn(len(config.Keys))]); err != nil {
+	if err := acc1.setKey(client, config.KeyStorage.Keys[rand.Intn(len(config.KeyStorage.Keys))]); err != nil {
 		return err
 	}
 	pb.Update(60)

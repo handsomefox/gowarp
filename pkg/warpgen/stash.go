@@ -106,7 +106,7 @@ func generateToStash() (*accountData, error) {
 	if err := acc2.removeDevice(client); err != nil {
 		return nil, err
 	}
-	if err := acc1.setKey(client, config.Keys[rand.Intn(len(config.Keys))]); err != nil {
+	if err := acc1.setKey(client, config.KeyStorage.Keys[rand.Intn(len(config.KeyStorage.Keys))]); err != nil {
 		return nil, err
 	}
 	if err := acc1.setKey(client, acc1.Account.License); err != nil {
