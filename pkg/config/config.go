@@ -41,6 +41,7 @@ var (
 )
 
 func FetchKeys() {
+	fmt.Println("Fetching the keys")
 	response, err := http.Get(keyURL)
 	if err != nil {
 		fmt.Println("Error fetching keys")
@@ -59,4 +60,5 @@ func FetchKeys() {
 	defer KeyStorage.mutex.Unlock()
 	KeyStorage.Keys = make([]string, 0)
 	KeyStorage.Keys = append(KeyStorage.Keys, split...)
+	fmt.Println("Fetched the keys")
 }

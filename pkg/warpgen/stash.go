@@ -5,14 +5,13 @@ import (
 	"gowarp/pkg/config"
 	"math/rand"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
 type Stashed struct {
 	acc    *accountData
 	filled bool
-	mtx    sync.Mutex
+	mutex  sync.Mutex
 }
 
 const (
@@ -21,17 +20,16 @@ const (
 
 var (
 	stash [config.RingSize]*Stashed
-	index int64
 )
 
 func refillStash() {
 	for i := 0; i < config.RingSize; i++ {
-		refillAtIndex(int64(i))
+		refillAtIndex(int64(i), waitTime)
 	}
 	fmt.Println("Refilled stash")
 }
 
-func refillAtIndex(index int64) {
+func refillAtIndex(index int64, sleepTime time.Duration) {
 	fmt.Printf("Refilling stashed key at index %v\n", index)
 
 	if stash[index] != nil {
@@ -40,21 +38,26 @@ func refillAtIndex(index int64) {
 	}
 
 	start := time.Now()
-	time.Sleep(waitTime)
+	time.Sleep(sleepTime)
 
 	stash[index] = &Stashed{}
 
-	stash[index].mtx.Lock()
-	defer stash[index].mtx.Unlock()
+	stash[index].mutex.Lock()
+	defer stash[index].mutex.Unlock()
 
 	data, err := generateToStash()
 	if err != nil {
+		fmt.Println("Error when refilling a key")
 		stash[index] = nil
+		go refillAtIndex(index, waitTime+randomAdditionalTime())
 	} else {
 		gbs, _ := data.RefCount.Int64()
 		if gbs < int64(100000) {
+			fmt.Println("Account limit was to small when refilling the key")
 			stash[index] = nil
+			go refillAtIndex(index, waitTime+randomAdditionalTime())
 		} else {
+			fmt.Println("Refilled successfully")
 			stash[index].acc = data
 			stash[index].filled = true
 		}
@@ -63,31 +66,25 @@ func refillAtIndex(index int64) {
 }
 
 func getFromStash() *accountData {
-	if stash[index] == nil {
-		return nil
+	for i := 0; i < config.RingSize; i++ {
+		if stash[i] != nil {
+			stash[i].mutex.Lock()
+			defer stash[i].mutex.Unlock()
+
+			data := stash[i].acc
+			fmt.Printf("Getting entry from index %v\n", i)
+
+			stash[i] = nil
+
+			go refillAtIndex(int64(i), waitTime+randomAdditionalTime())
+			return data
+		}
 	}
-
-	if stash[index].filled && stash[index].acc == nil {
-		stash[index] = nil
-		go refillAtIndex(index)
-		atomic.AddInt64(&index, 1)
-		return nil
-	}
-
-	data := stash[index].acc
-
-	fmt.Printf("Getting entry from index %v\n", index)
-	stash[index] = nil
-	go refillAtIndex(index)
-	handleIndex()
-	return data
+	return nil
 }
 
-func handleIndex() {
-	atomic.AddInt64(&index, 1)
-	if index == config.RingSize-1 {
-		atomic.StoreInt64(&index, 0)
-	}
+func randomAdditionalTime() time.Duration {
+	return time.Duration(rand.Intn(180)) * time.Second
 }
 
 func generateToStash() (*accountData, error) {

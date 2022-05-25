@@ -13,11 +13,12 @@ import (
 func init() {
 	config.FetchKeys()
 	go refillStash()
-	// background task for refilling as well
+	// background task for refilling
 	go func() {
-		time.Sleep(2 * time.Hour)
+		time.Sleep(3 * time.Hour)
 		refillStash()
 	}()
+	// background task for fetching new keys
 	go func() {
 		time.Sleep(24 * time.Hour)
 		config.FetchKeys()
