@@ -51,8 +51,13 @@ func refillAtIndex(index int64) {
 	if err != nil {
 		stash[index] = nil
 	} else {
-		stash[index].acc = data
-		stash[index].filled = true
+		gbs, _ := data.RefCount.Int64()
+		if gbs < int64(100000) {
+			stash[index] = nil
+		} else {
+			stash[index].acc = data
+			stash[index].filled = true
+		}
 	}
 	fmt.Printf("Filled entry %v in %v\n", index, time.Since(start))
 }
