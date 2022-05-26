@@ -15,7 +15,7 @@ const (
 	UserAgent       = "okhttp/3.12.1"
 	Host            = "api.cloudflareclient.com"
 	BaseURL         = "https://api.cloudflareclient.com/v0a2405"
-	RingSize        = 20
+	RingSize        = 40
 	keyURL          = "https://keyses-for-generator.serdarad.repl.co/"
 	// WaitTime is required to not hit rate limiting every time
 	WaitTime = 45 * time.Second
