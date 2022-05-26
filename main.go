@@ -10,9 +10,12 @@ import (
 
 // warp is an http.HandleFunc that generates a warp+ key and writes it to the http.ResponseWriter
 func warp(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
 	if err := warpgen.Generate(w, r); err != nil {
 		fmt.Fprintf(w, "\nError when creating keys: %v\n", err)
-		return
 	}
 }
 
