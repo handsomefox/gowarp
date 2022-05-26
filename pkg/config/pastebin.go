@@ -38,7 +38,7 @@ func loadConfig() *ClientConfiguration {
 			hostKey            = "Host"
 			baseURLKey         = "BaseURL"
 			waitTimeKey        = "WaitTime"
-			keysKey            = "keys"
+			keysKey            = "Keys"
 		)
 
 		switch split[0] {
@@ -58,10 +58,7 @@ func loadConfig() *ClientConfiguration {
 		case keysKey:
 			keys := strings.Split(split[1], ",")
 			if len(keys) > 0 {
-				config.KeyStorage.mutex.Lock()
-				defer config.KeyStorage.mutex.Unlock()
-				config.KeyStorage.Keys = make([]string, 0)
-				config.KeyStorage.Keys = append(config.KeyStorage.Keys, keys...)
+				config.KeyStorage.Keys = keys
 			}
 		}
 	}
