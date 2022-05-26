@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	config.FetchKeys()
+	// config.FetchKeys()
 	go refillStash()
 	// background task for refilling
 	go func() {
@@ -19,10 +19,10 @@ func init() {
 		refillStash()
 	}()
 	// background task for fetching new keys
-	go func() {
-		time.Sleep(24 * time.Hour)
-		config.FetchKeys()
-	}()
+	// go func() {
+	// 	time.Sleep(24 * time.Hour)
+	// 	config.FetchKeys()
+	// }()
 }
 
 func Generate(w http.ResponseWriter, r *http.Request) error {
