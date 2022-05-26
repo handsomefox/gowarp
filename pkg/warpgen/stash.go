@@ -14,7 +14,7 @@ type StashedValue struct {
 	filled bool
 }
 
-// Stash is is a storage space which is used for storing cached keys for users
+// Stash is a storage space which is used for storing cached keys for users
 // to not have to wait for generation every time they try to get a key
 type Stash struct {
 	store [config.RingSize]*StashedValue
