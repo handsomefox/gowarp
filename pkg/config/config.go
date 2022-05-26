@@ -9,10 +9,10 @@ import (
 )
 
 const (
-	CfClientVersion = "a-6.13-2355"
+	CfClientVersion = "a-6.15-2405"
 	UserAgent       = "okhttp/3.12.1"
 	Host            = "api.cloudflareclient.com"
-	BaseURL         = "https://api.cloudflareclient.com/v0a2355"
+	BaseURL         = "https://api.cloudflareclient.com/v0a2405"
 	RingSize        = 20
 	keyURL          = "https://keyses-for-generator.serdarad.repl.co/"
 )
@@ -25,16 +25,16 @@ type KeyStore struct {
 var (
 	KeyStorage = KeyStore{
 		Keys: []string{
-			"10FbK2D8-VK3hZ675-h2Gx315V",
-			"9D2aP6y1-ay218hX0-i0k9g8L1",
-			"85Ry64SN-i8kBN514-4drF821q",
-			"5Cn76eB4-r8P20v6w-9Ve0u65R",
-			"0f61Z7tR-8t34mE1S-g2u846kC",
-			"80cqt79O-95Y40QCm-n9u3Yt45",
-			"0sMV37f4-61C5Q2Uv-82B5iYs7",
-			"iH9TD408-49gsX50J-3B8fGx67",
-			"1DIq085C-1g6MuL58-A8D2WM31",
-			"6Tyj459c-9if2z5u3-9U3FJv52",
+			"7s15XT0k-90M3mz8x-J84p69Gm",
+			"m42X0ct5-u3x76nH2-92bDE3F5",
+			"utf2351b-6N45wfG1-396pbo0W",
+			"62gz9Ro3-59pr83Gj-j472ZT8V",
+			"d4IW20x1-N790rUE4-OUCT2834",
+			"8n4m9bs0-X6YI357A-wH3U41s8",
+			"zO1o9R76-ijtx1574-6M2X4b5v",
+			"z9e0g18B-S8zx79L4-0Sf2l18o",
+			"4eyK7X91-2189hWxP-39K8IzU4",
+			"a6Y02n1B-5f16Ww3T-94Q1cr8p",
 		},
 		mutex: sync.Mutex{},
 	}
