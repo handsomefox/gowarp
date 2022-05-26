@@ -15,7 +15,7 @@ type Stashed struct {
 }
 
 const (
-	waitTime = 1*time.Minute + 30*time.Second
+	waitTime = 45 * time.Second
 )
 
 var (
