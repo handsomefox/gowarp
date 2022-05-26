@@ -11,6 +11,10 @@ import (
 	"time"
 )
 
+func TriggerUpdate() {
+	config.UpdateConfig()
+}
+
 func init() {
 	config.UpdateConfig()
 	go refillStash()

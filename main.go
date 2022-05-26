@@ -19,7 +19,15 @@ func warp(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// configUpdate is an endpoint that triggers the configuration update
+// allowing you to manually trigger the updates
+func configUpdate(w http.ResponseWriter, r *http.Request) {
+	warpgen.TriggerUpdate()
+	fmt.Fprintf(w, "Updated config!\n")
+}
+
 func main() {
 	http.HandleFunc("/", warp)
+	http.HandleFunc("/config/update", configUpdate)
 	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), nil))
 }
