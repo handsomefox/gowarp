@@ -74,11 +74,11 @@ func refillAtIndex(index int64, sleepTime time.Duration) {
 // if it returns a key, it will launch a goroutine to refill the key at the index
 // at which the key was given.
 func getFromStash() *accountData {
+	stash.mutex.Lock()
+	defer stash.mutex.Unlock()
 
 	for i := 0; i < config.RingSize; i++ {
 		if stash.store[i] != nil {
-			stash.mutex.Lock()
-			defer stash.mutex.Unlock()
 
 			data := stash.store[i].acc
 			fmt.Printf("Getting entry from index %v\n", i)
