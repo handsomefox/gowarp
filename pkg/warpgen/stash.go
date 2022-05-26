@@ -15,11 +15,6 @@ type Stashed struct {
 	mutex  sync.Mutex
 }
 
-const (
-	// waitTime is required to not hit rate limiting every time
-	waitTime = 45 * time.Second
-)
-
 var (
 	// stash is a storage space which is used for storing cached keys for users
 	// to not have to wait for generation every time they try to get a key
@@ -29,7 +24,7 @@ var (
 // refillStash goes through the whole stash and calls refillAtIndex(index)
 func refillStash() {
 	for i := 0; i < config.RingSize; i++ {
-		refillAtIndex(int64(i), waitTime)
+		refillAtIndex(int64(i), config.WaitTime)
 	}
 	fmt.Println("Refilled stash")
 }
@@ -57,13 +52,13 @@ func refillAtIndex(index int64, sleepTime time.Duration) {
 	if err != nil {
 		fmt.Println("Error when refilling a key")
 		stash[index] = nil
-		go refillAtIndex(index, waitTime+randomAdditionalTime())
+		go refillAtIndex(index, config.WaitTime+randomAdditionalTime())
 	} else {
 		gbs, _ := data.RefCount.Int64()
 		if gbs < int64(100000) {
 			fmt.Println("Account limit was to small when refilling the key")
 			stash[index] = nil
-			go refillAtIndex(index, waitTime+randomAdditionalTime())
+			go refillAtIndex(index, config.WaitTime+randomAdditionalTime())
 		} else {
 			fmt.Println("Refilled successfully")
 			stash[index].acc = data
@@ -87,7 +82,7 @@ func getFromStash() *accountData {
 
 			stash[i] = nil
 
-			go refillAtIndex(int64(i), waitTime+randomAdditionalTime())
+			go refillAtIndex(int64(i), config.WaitTime+randomAdditionalTime())
 			return data
 		}
 	}

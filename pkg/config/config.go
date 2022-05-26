@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -16,6 +17,8 @@ const (
 	BaseURL         = "https://api.cloudflareclient.com/v0a2405"
 	RingSize        = 20
 	keyURL          = "https://keyses-for-generator.serdarad.repl.co/"
+	// WaitTime is required to not hit rate limiting every time
+	WaitTime = 45 * time.Second
 )
 
 // KeyStore represents a storage for keys, which are just strings and a mutex to update them when FetchKeys()
