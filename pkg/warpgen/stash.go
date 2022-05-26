@@ -10,8 +10,7 @@ import (
 
 // StashedValue represents a value that is saved in stash
 type StashedValue struct {
-	acc    accountData
-	filled bool
+	acc accountData
 }
 
 // Stash is a storage space which is used for storing cached keys for users
@@ -66,7 +65,6 @@ func refillAtIndex(index int64, sleepTime time.Duration) {
 		} else {
 			fmt.Println("Refilled successfully")
 			stash.store[index].acc = *data
-			stash.store[index].filled = true
 		}
 	}
 	fmt.Printf("Filled entry %v in %v\n", index, time.Since(start))

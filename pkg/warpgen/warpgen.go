@@ -1,3 +1,4 @@
+// warpgen is a package used for generating cfwarp+ keys
 package warpgen
 
 import (

@@ -21,8 +21,8 @@ const (
 	WaitTime = 45 * time.Second
 )
 
-// KeyStore represents a storage for keys, which are just strings and a mutex to update them when FetchKeys()
-// is called
+// KeyStore represents a storage for keys, which are just strings and a mutex
+// to update them when FetchKeys() is called
 type KeyStore struct {
 	Keys  []string
 	mutex sync.Mutex
