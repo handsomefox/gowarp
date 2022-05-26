@@ -10,7 +10,7 @@ import (
 
 // Stashed represents a value that is saved in stash
 type Stashed struct {
-	acc    *accountData
+	acc    accountData
 	filled bool
 	mutex  sync.Mutex
 }
@@ -61,7 +61,7 @@ func refillAtIndex(index int64, sleepTime time.Duration) {
 			go refillAtIndex(index, config.WaitTime+randomAdditionalTime())
 		} else {
 			fmt.Println("Refilled successfully")
-			stash[index].acc = data
+			stash[index].acc = *data
 			stash[index].filled = true
 		}
 	}
@@ -83,7 +83,7 @@ func getFromStash() *accountData {
 			stash[i] = nil
 
 			go refillAtIndex(int64(i), config.WaitTime+randomAdditionalTime())
-			return data
+			return &data
 		}
 	}
 	return nil
