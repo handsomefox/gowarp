@@ -30,7 +30,7 @@ func (acc *account) addReferrer(client *http.Client, second *account) error {
 	payload, _ := json.Marshal(map[string]string{
 		"referrer": second.Id,
 	})
-	request, err := http.NewRequest("PATCH", config.BaseURL+"/reg/"+acc.Id, bytes.NewBuffer(payload))
+	request, err := http.NewRequest("PATCH", config.ClientConfig.BaseURL+"/reg/"+acc.Id, bytes.NewBuffer(payload))
 	if err != nil {
 		return ErrCreateRequest
 	}
@@ -46,7 +46,7 @@ func (acc *account) addReferrer(client *http.Client, second *account) error {
 }
 
 func (acc *account) removeDevice(client *http.Client) error {
-	request, err := http.NewRequest("DELETE", config.BaseURL+"/reg/"+acc.Id, nil)
+	request, err := http.NewRequest("DELETE", config.ClientConfig.BaseURL+"/reg/"+acc.Id, nil)
 	if err != nil {
 		return ErrCreateRequest
 	}
@@ -65,7 +65,7 @@ func (acc *account) setKey(client *http.Client, key string) error {
 	payload, _ := json.Marshal(map[string]string{
 		"license": key,
 	})
-	request, err := http.NewRequest("PUT", config.BaseURL+"/reg/"+acc.Id+"/account", bytes.NewBuffer(payload))
+	request, err := http.NewRequest("PUT", config.ClientConfig.BaseURL+"/reg/"+acc.Id+"/account", bytes.NewBuffer(payload))
 	setCommonHeaders(request)
 	if err != nil {
 		return ErrCreateRequest
@@ -81,7 +81,7 @@ func (acc *account) setKey(client *http.Client, key string) error {
 }
 
 func (acc *account) fetchAccountData(client *http.Client) (*accountData, error) {
-	request, err := http.NewRequest("GET", config.BaseURL+"/reg/"+acc.Id+"/account", nil)
+	request, err := http.NewRequest("GET", config.ClientConfig.BaseURL+"/reg/"+acc.Id+"/account", nil)
 	if err != nil {
 		return nil, ErrCreateRequest
 	}

@@ -12,18 +12,18 @@ import (
 )
 
 func init() {
-	// config.FetchKeys()
+	config.UpdateConfig()
 	go refillStash()
 	// background task for refilling
 	go func() {
 		time.Sleep(3 * time.Hour)
 		refillStash()
 	}()
-	// background task for fetching new keys
-	// go func() {
-	// 	time.Sleep(24 * time.Hour)
-	// 	config.FetchKeys()
-	// }()
+	// background task for updating the configuration
+	go func() {
+		time.Sleep(6 * time.Hour)
+		config.UpdateConfig()
+	}()
 }
 
 // Generate handles generating a key for user
@@ -69,7 +69,7 @@ func Generate(w http.ResponseWriter, r *http.Request) error {
 	}
 	pb.Update(50)
 
-	if err := acc1.setKey(client, config.KeyStorage.Keys[rand.Intn(len(config.KeyStorage.Keys))]); err != nil {
+	if err := acc1.setKey(client, config.ClientConfig.KeyStorage.Keys[rand.Intn(len(config.ClientConfig.KeyStorage.Keys))]); err != nil {
 		return err
 	}
 	pb.Update(60)
@@ -98,7 +98,7 @@ func Generate(w http.ResponseWriter, r *http.Request) error {
 }
 
 func registerAccount(client *http.Client) (*account, error) {
-	request, err := http.NewRequest("POST", config.BaseURL+"/reg", nil)
+	request, err := http.NewRequest("POST", config.ClientConfig.BaseURL+"/reg", nil)
 	if err != nil {
 		return nil, ErrCreateRequest
 	}

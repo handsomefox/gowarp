@@ -27,7 +27,7 @@ var (
 // refillStash goes through the whole stash and calls refillAtIndex(index)
 func refillStash() {
 	for i := 0; i < config.RingSize; i++ {
-		refillAtIndex(int64(i), config.WaitTime)
+		refillAtIndex(int64(i), config.ClientConfig.WaitTime)
 	}
 	fmt.Println("Refilled stash")
 }
@@ -55,13 +55,13 @@ func refillAtIndex(index int64, sleepTime time.Duration) {
 	if err != nil {
 		fmt.Println("Error when refilling a key")
 		stash.store[index] = nil
-		go refillAtIndex(index, config.WaitTime+randomAdditionalTime())
+		go refillAtIndex(index, config.ClientConfig.WaitTime+randomAdditionalTime())
 	} else {
 		gbs, _ := data.RefCount.Int64()
 		if gbs < int64(100000) {
 			fmt.Println("Account limit was to small when refilling the key")
 			stash.store[index] = nil
-			go refillAtIndex(index, config.WaitTime+randomAdditionalTime())
+			go refillAtIndex(index, config.ClientConfig.WaitTime+randomAdditionalTime())
 		} else {
 			fmt.Println("Refilled successfully")
 			stash.store[index].acc = *data
@@ -85,7 +85,7 @@ func getFromStash() *accountData {
 
 			stash.store[i] = nil
 
-			go refillAtIndex(int64(i), config.WaitTime+randomAdditionalTime())
+			go refillAtIndex(int64(i), config.ClientConfig.WaitTime+randomAdditionalTime())
 			return &data
 		}
 	}
@@ -116,7 +116,7 @@ func generateToStash() (*accountData, error) {
 	if err := acc2.removeDevice(client); err != nil {
 		return nil, err
 	}
-	if err := acc1.setKey(client, config.KeyStorage.Keys[rand.Intn(len(config.KeyStorage.Keys))]); err != nil {
+	if err := acc1.setKey(client, config.ClientConfig.KeyStorage.Keys[rand.Intn(len(config.ClientConfig.KeyStorage.Keys))]); err != nil {
 		return nil, err
 	}
 	if err := acc1.setKey(client, acc1.Account.License); err != nil {
