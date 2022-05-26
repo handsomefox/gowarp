@@ -7,18 +7,21 @@ import (
 	"net/http"
 )
 
+// accountData represents the response with CF account data, including the key
 type accountData struct {
 	Type     string      `json:"account_type"`
 	RefCount json.Number `json:"referral_count"`
 	License  string      `json:"license"`
 }
 
+// account represents a registered CF account
 type account struct {
 	Id      string  `json:"id"`
 	Account license `json:"account"`
 	Token   string  `json:"token"`
 }
 
+// license is just a license key
 type license struct {
 	License string `json:"license"`
 }

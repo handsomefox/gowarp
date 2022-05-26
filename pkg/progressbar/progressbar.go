@@ -1,3 +1,4 @@
+// progressbar is a package used for printing a progress-bar to an http.ResponseWriter
 package progressbar
 
 import (
@@ -15,6 +16,7 @@ type Progressbar struct {
 	graph   string
 }
 
+// New is used to create a new Progressbar
 func New(w http.ResponseWriter, f http.Flusher) *Progressbar {
 	pb := &Progressbar{
 		current: 0,
@@ -27,6 +29,7 @@ func New(w http.ResponseWriter, f http.Flusher) *Progressbar {
 	return pb
 }
 
+// Update is called to update the progressbar progress
 func (b *Progressbar) Update(count int) {
 	for i := 1; i <= 10; i++ {
 		b.play(count + i)

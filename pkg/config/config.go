@@ -1,3 +1,4 @@
+// config is a package for having all app configuration including keys that are used to generate new keys
 package config
 
 import (
@@ -17,6 +18,8 @@ const (
 	keyURL          = "https://keyses-for-generator.serdarad.repl.co/"
 )
 
+// KeyStore represents a storage for keys, which are just strings and a mutex to update them when FetchKeys()
+// is called
 type KeyStore struct {
 	Keys  []string
 	mutex sync.Mutex
@@ -40,6 +43,7 @@ var (
 	}
 )
 
+// FetchKeys fetches the keys from the URL, parses them and updates the KeyStorage
 func FetchKeys() {
 	fmt.Println("Fetching the keys")
 	response, err := http.Get(keyURL)

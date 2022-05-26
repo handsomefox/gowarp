@@ -25,6 +25,7 @@ func init() {
 	// }()
 }
 
+// Generate handles generating a key for user
 func Generate(w http.ResponseWriter, r *http.Request) error {
 	client := createClient()
 	handleBrowsers(w, r)
