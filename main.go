@@ -76,7 +76,7 @@ func configUpdate(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Updated config!\n")
 }
 
-var limiter = NewIPRateLimiter(1, 2)
+var limiter = NewIPRateLimiter(1, 1)
 
 func main() {
 	mux := http.NewServeMux()
