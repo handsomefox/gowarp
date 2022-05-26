@@ -41,8 +41,8 @@ func handleBrowsers(w http.ResponseWriter, r *http.Request) {
 
 // setCommonHeaders is a helper function that sets headers required for each request to cloudflare APIs
 func setCommonHeaders(request *http.Request) {
-	request.Header.Set("CF-Client-Version", config.CfClientVersion)
-	request.Header.Set("Host", config.Host)
-	request.Header.Set("User-Agent", config.UserAgent)
+	request.Header.Set("CF-Client-Version", config.ClientConfig.CfClientVersion)
+	request.Header.Set("Host", config.ClientConfig.Host)
+	request.Header.Set("User-Agent", config.ClientConfig.UserAgent)
 	request.Header.Set("Connection", "Keep-Alive")
 }
