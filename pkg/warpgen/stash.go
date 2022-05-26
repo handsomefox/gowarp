@@ -8,17 +8,21 @@ import (
 	"time"
 )
 
-// Stashed represents a value that is saved in stash
-type Stashed struct {
+// StashedValue represents a value that is saved in stash
+type StashedValue struct {
 	acc    accountData
 	filled bool
-	mutex  sync.Mutex
+}
+
+// Stash is is a storage space which is used for storing cached keys for users
+// to not have to wait for generation every time they try to get a key
+type Stash struct {
+	store [config.RingSize]*StashedValue
+	mutex sync.Mutex
 }
 
 var (
-	// stash is a storage space which is used for storing cached keys for users
-	// to not have to wait for generation every time they try to get a key
-	stash [config.RingSize]*Stashed
+	stash = Stash{}
 )
 
 // refillStash goes through the whole stash and calls refillAtIndex(index)
@@ -35,7 +39,7 @@ func refillStash() {
 func refillAtIndex(index int64, sleepTime time.Duration) {
 	fmt.Printf("Refilling stashed key at index %v\n", index)
 
-	if stash[index] != nil {
+	if stash.store[index] != nil {
 		fmt.Println("This key is already filled")
 		return
 	}
@@ -43,26 +47,26 @@ func refillAtIndex(index int64, sleepTime time.Duration) {
 	start := time.Now()
 	time.Sleep(sleepTime)
 
-	stash[index] = &Stashed{}
+	stash.store[index] = &StashedValue{}
 
-	stash[index].mutex.Lock()
-	defer stash[index].mutex.Unlock()
+	stash.mutex.Lock()
+	defer stash.mutex.Unlock()
 
 	data, err := generateToStash()
 	if err != nil {
 		fmt.Println("Error when refilling a key")
-		stash[index] = nil
+		stash.store[index] = nil
 		go refillAtIndex(index, config.WaitTime+randomAdditionalTime())
 	} else {
 		gbs, _ := data.RefCount.Int64()
 		if gbs < int64(100000) {
 			fmt.Println("Account limit was to small when refilling the key")
-			stash[index] = nil
+			stash.store[index] = nil
 			go refillAtIndex(index, config.WaitTime+randomAdditionalTime())
 		} else {
 			fmt.Println("Refilled successfully")
-			stash[index].acc = *data
-			stash[index].filled = true
+			stash.store[index].acc = *data
+			stash.store[index].filled = true
 		}
 	}
 	fmt.Printf("Filled entry %v in %v\n", index, time.Since(start))
@@ -72,15 +76,16 @@ func refillAtIndex(index int64, sleepTime time.Duration) {
 // if it returns a key, it will launch a goroutine to refill the key at the index
 // at which the key was given.
 func getFromStash() *accountData {
-	for i := 0; i < config.RingSize; i++ {
-		if stash[i] != nil {
-			stash[i].mutex.Lock()
-			defer stash[i].mutex.Unlock()
 
-			data := stash[i].acc
+	for i := 0; i < config.RingSize; i++ {
+		if stash.store[i] != nil {
+			stash.mutex.Lock()
+			defer stash.mutex.Unlock()
+
+			data := stash.store[i].acc
 			fmt.Printf("Getting entry from index %v\n", i)
 
-			stash[i] = nil
+			stash.store[i] = nil
 
 			go refillAtIndex(int64(i), config.WaitTime+randomAdditionalTime())
 			return &data
