@@ -42,5 +42,11 @@ func UpdateConfig() {
 	ClientConfig.Host = newConfig.Host
 	ClientConfig.BaseURL = newConfig.BaseURL
 	ClientConfig.WaitTime = newConfig.WaitTime
-	fmt.Printf("Updated config, current values: %v\n", ClientConfig)
+	fmt.Println("Updated config")
+	fmt.Println(ClientConfig.CfClientVersion)
+	fmt.Println(ClientConfig.UserAgent)
+	fmt.Println(ClientConfig.Host)
+	fmt.Println(ClientConfig.BaseURL)
+	fmt.Println(ClientConfig.WaitTime)
+	fmt.Println(ClientConfig.KeyStorage.Keys)
 }
