@@ -19,8 +19,8 @@ func NewStorage() *Storage {
 	}
 }
 
-func (s *Storage) Fill(config *ConfigData) {
-	for i := 0; i < storeSize; i++ {
+func (s *Storage) Fill(config *Config) {
+	for {
 		key, err := Generate(config)
 		if err != nil {
 			continue
@@ -49,43 +49,44 @@ func (s *Storage) GetKey(config *ConfigData) (AccountData, error) {
 }
 
 // Generate handles generating a key for user.
-func Generate(config *ConfigData) (*AccountData, error) {
+func Generate(config *Config) (*AccountData, error) {
 	client := createClient()
+	cfg := config.Get()
 
-	acc1, err := registerAccount(config, client)
+	acc1, err := registerAccount(&cfg, client)
 	if err != nil {
 		return nil, err
 	}
 
-	acc2, err := registerAccount(config, client)
+	acc2, err := registerAccount(&cfg, client)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := acc1.addReferrer(config, client, acc2); err != nil {
+	if err := acc1.addReferrer(&cfg, client, acc2); err != nil {
 		return nil, err
 	}
 
-	if err := acc2.removeDevice(config, client); err != nil {
+	if err := acc2.removeDevice(&cfg, client); err != nil {
 		return nil, err
 	}
 
-	keys := config.Keys
+	keys := cfg.Keys
 
-	if err := acc1.setKey(config, client, keys[rand.Intn(len(keys))]); err != nil {
+	if err := acc1.setKey(&cfg, client, keys[rand.Intn(len(keys))]); err != nil {
 		return nil, err
 	}
 
-	if err := acc1.setKey(config, client, acc1.Account.License); err != nil {
+	if err := acc1.setKey(&cfg, client, acc1.Account.License); err != nil {
 		return nil, err
 	}
 
-	accData, err := acc1.fetchAccountData(config, client)
+	accData, err := acc1.fetchAccountData(&cfg, client)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := acc1.removeDevice(config, client); err != nil {
+	if err := acc1.removeDevice(&cfg, client); err != nil {
 		return nil, err
 	}
 

@@ -28,13 +28,8 @@ func New() *Warp {
 	store := NewStorage()
 
 	// start a goroutine that will be actively trying to update the storage
-	go func() {
-		for {
-			config := cfg.Get()
-			store.Fill(&config)
-			time.Sleep(12 * time.Hour)
-		}
-	}()
+
+	go store.Fill(cfg)
 
 	// start a goroutine that will be trying to update the config something like every 6 hours
 	go func() {
