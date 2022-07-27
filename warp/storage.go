@@ -4,76 +4,48 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"sync"
 	"time"
 )
 
+const storeSize = 20
+
 type Storage struct {
-	keys [20]*AccountData
-	mu   sync.Mutex
+	keyChan chan AccountData
+}
+
+func NewStorage() *Storage {
+	return &Storage{
+		keyChan: make(chan AccountData, storeSize),
+	}
 }
 
 func (s *Storage) Fill(config *ConfigData) {
-	for i := 0; i < len(s.keys); i++ {
-		s.mu.Lock()
-
-		key := s.keys[i]
-		if key == nil {
-			s.UpdateIndex(config, i)
+	for i := 0; i < storeSize; i++ {
+		key, err := Generate(config)
+		if err != nil {
+			continue
 		}
 
-		s.mu.Unlock()
+		log.Println("added key to storage")
+		s.keyChan <- *key
 
 		time.Sleep(time.Minute + randomTime())
 	}
 }
 
 func (s *Storage) GetKey(config *ConfigData) (AccountData, error) {
-	for i := 0; i < len(s.keys); i++ {
-		s.mu.Lock()
+	select {
+	case v, ok := <-s.keyChan:
+		if ok {
+			log.Println("got key from storage")
 
-		key := s.keys[i]
-		if key != nil {
-			returnedKey := *key
-			s.keys[i] = nil
-
-			go func(config *ConfigData, index int) {
-				time.Sleep(time.Minute + randomTime())
-				s.UpdateIndex(config, index)
-			}(config, i)
-
-			return returnedKey, nil
+			return v, nil
 		}
 
-		s.mu.Unlock()
+		return AccountData{}, fmt.Errorf("channel is closed")
+	default:
+		return AccountData{}, fmt.Errorf("no key was found")
 	}
-
-	return AccountData{}, fmt.Errorf("no key was found")
-}
-
-func (s *Storage) UpdateIndex(config *ConfigData, index int) {
-	if index <= 0 || index > 20 {
-		return
-	}
-
-	log.Printf("updating key at index %d", index)
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	key := &s.keys[index]
-	if key != nil {
-		return
-	}
-
-	newKey, err := Generate(config)
-	if err != nil {
-		return
-	}
-
-	log.Printf("updated key at index %d", index)
-
-	s.keys[index] = newKey
 }
 
 // Generate handles generating a key for user.

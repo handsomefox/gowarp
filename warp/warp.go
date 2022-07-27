@@ -6,7 +6,6 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	"sync"
 	"time"
 
 	"gowarp/progressbar"
@@ -26,10 +25,7 @@ func New() *Warp {
 		log.Printf("error updating config: %v", err)
 	}
 
-	store := &Storage{
-		mu:   sync.Mutex{},
-		keys: [20]*AccountData{},
-	}
+	store := NewStorage()
 
 	// start a goroutine that will be actively trying to update the storage
 	go func() {
