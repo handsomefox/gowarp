@@ -12,7 +12,7 @@ import (
 func main() {
 	mux := http.NewServeMux()
 
-	limiter := ratelimiter.New(1, 2)
+	limiter := ratelimiter.New(1, 4)
 	limiterMiddleware := ratelimiter.NewMiddleware(limiter)
 	warpHandle := warp.New()
 
