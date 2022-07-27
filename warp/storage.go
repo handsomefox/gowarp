@@ -2,6 +2,7 @@ package warp
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"sync"
 	"time"
@@ -55,6 +56,8 @@ func (s *Storage) UpdateIndex(config *ConfigData, index int) {
 		return
 	}
 
+	log.Printf("updating key at index %d", index)
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -67,6 +70,8 @@ func (s *Storage) UpdateIndex(config *ConfigData, index int) {
 	if err != nil {
 		return
 	}
+
+	log.Printf("updated key at index %d", index)
 
 	s.keys[index] = newKey
 }
