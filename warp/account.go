@@ -29,6 +29,7 @@ func (acc *Account) addReferrer(config *ConfigData, client *http.Client, second 
 	payload, _ := json.Marshal(map[string]string{
 		"referrer": second.ID,
 	})
+
 	request, err := http.NewRequest("PATCH", config.BaseURL+"/reg/"+acc.ID, bytes.NewBuffer(payload))
 	if err != nil {
 		return ErrCreateRequest
@@ -69,7 +70,9 @@ func (acc *Account) setKey(config *ConfigData, client *http.Client, key string) 
 		"license": key,
 	})
 	request, err := http.NewRequest("PUT", config.BaseURL+"/reg/"+acc.ID+"/account", bytes.NewBuffer(payload))
+
 	setCommonHeaders(config, request)
+
 	if err != nil {
 		return ErrCreateRequest
 	}

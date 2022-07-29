@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"sync"
 	"time"
 
 	"gowarp/progressbar"
@@ -18,6 +19,37 @@ type Warp struct {
 	storage *Storage
 }
 
+func (warp *Warp) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+
+		return
+	}
+
+	fstr := "Account type: %v\nData available: %vGB\nLicense: %v\n"
+
+	// fast path
+	storageKey, err := warp.storage.GetKey(&warp.GetConfig().data)
+	if err == nil {
+		log.Println("fast path, got key from stash")
+		fmt.Fprintf(w, fstr, storageKey.Type, storageKey.RefCount, storageKey.License)
+
+		return
+	}
+
+	// slow path
+	log.Println("slow path, generating key")
+
+	key, err := warp.Generate(w, r)
+	if err != nil {
+		fmt.Fprintln(w, fmt.Errorf("\nError when creating keys: %w", err))
+
+		return
+	}
+
+	fmt.Fprintf(w, fstr, key.Type, key.RefCount, key.License)
+}
+
 func New() *Warp {
 	cfg := NewConfig()
 
@@ -28,7 +60,6 @@ func New() *Warp {
 	store := NewStorage()
 
 	// start a goroutine that will be actively trying to update the storage
-
 	go store.Fill(cfg)
 
 	// start a goroutine that will be trying to update the config something like every 6 hours
@@ -58,113 +89,125 @@ func (warp *Warp) Update() {
 	}
 }
 
-// Generate handles generating a key for user.
-func (warp *Warp) Generate(w http.ResponseWriter, r *http.Request) error {
+func (warp *Warp) Generate(w http.ResponseWriter, r *http.Request) (*AccountData, error) {
 	var (
-		client   = createClient()
-		config   = warp.config.Get()
-		progress = 0
+		progressChan = make(chan int)
+		config       = warp.GetConfig()
+		wg           = new(sync.WaitGroup)
+
+		key *AccountData
+		err error
 	)
 
 	handleBrowsers(w, r)
 
-	key, err := warp.storage.GetKey(&config)
-	if err == nil {
-		log.Println("Got key from stash")
+	wg.Add(1)
 
-		str := fmt.Sprintf("Account type: %v\nData available: %vGB\nLicense: %v\n",
-			key.Type, key.RefCount, key.License)
+	go func(*Config, chan int) {
+		defer wg.Done()
+		defer close(progressChan)
 
-		fmt.Fprint(w, str)
+		key, err = Generate(config, progressChan)
+	}(config, progressChan)
 
-		return nil
-	}
+	wg.Add(1)
 
-	log.Println("Couldn't get key from stash, going the slow path")
+	go func(chan int) {
+		defer wg.Done()
 
-	flusher, _ := w.(http.Flusher)
-	pb := progressbar.New(w, flusher)
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			panic("no flusher")
+		}
 
-	progress += 10
-	pb.Update(progress)
+		pb := progressbar.New(w, flusher)
 
-	acc1, err := registerAccount(&config, client)
+		for progress := range progressChan {
+			pb.Update(progress)
+		}
+	}(progressChan)
+
+	wg.Wait()
+
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	progress += 10
-	pb.Update(progress)
-
-	acc2, err := registerAccount(&config, client)
-	if err != nil {
-		return err
-	}
-
-	progress += 10
-	pb.Update(progress)
-
-	if err := acc1.addReferrer(&config, client, acc2); err != nil {
-		return err
-	}
-
-	progress += 10
-	pb.Update(progress)
-
-	if err := acc2.removeDevice(&config, client); err != nil {
-		return nil
-	}
-
-	progress += 10
-	pb.Update(progress)
-
-	keys := config.Keys
-
-	if err := acc1.setKey(&config, client, keys[rand.Intn(len(keys))]); err != nil {
-		return err
-	}
-
-	progress += 10
-	pb.Update(progress)
-
-	if err := acc1.setKey(&config, client, acc1.Account.License); err != nil {
-		return err
-	}
-
-	progress += 10
-	pb.Update(progress)
-
-	accData, err := acc1.fetchAccountData(&config, client)
-	if err != nil {
-		return err
-	}
-
-	progress += 10
-	pb.Update(progress)
-
-	if err := acc1.removeDevice(&config, client); err != nil {
-		return err
-	}
-
-	progress += 10
-	pb.Update(progress)
-
-	str := fmt.Sprintf("\n\nAccount type: %v\nData available: %vGB\nLicense: %v\n",
-		accData.Type, accData.RefCount, accData.License)
-
-	fmt.Fprint(w, str)
-
-	return nil
+	return key, nil
 }
 
-func (warp *Warp) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
+// Generate handles generating a key for user.
+func Generate(config *Config, progressChan chan int) (*AccountData, error) {
+	var (
+		client   = createClient()
+		cfg      = config.Get()
+		progress = 0
+	)
+	progressChan <- progress
 
-		return
+	progress += 10
+	progressChan <- progress
+
+	acc1, err := registerAccount(&cfg, client)
+	if err != nil {
+		return nil, err
 	}
 
-	if err := warp.Generate(w, r); err != nil {
-		fmt.Fprintln(w, fmt.Errorf("\nError when creating keys: %w", err))
+	progress += 10
+	progressChan <- progress
+
+	acc2, err := registerAccount(&cfg, client)
+	if err != nil {
+		return nil, err
 	}
+
+	progress += 10
+	progressChan <- progress
+
+	if err := acc1.addReferrer(&cfg, client, acc2); err != nil {
+		return nil, err
+	}
+
+	progress += 10
+	progressChan <- progress
+
+	if err := acc2.removeDevice(&cfg, client); err != nil {
+		return nil, err
+	}
+
+	progress += 10
+	progressChan <- progress
+
+	keys := cfg.Keys
+
+	if err := acc1.setKey(&cfg, client, keys[rand.Intn(len(keys))]); err != nil {
+		return nil, err
+	}
+
+	progress += 10
+	progressChan <- progress
+
+	if err := acc1.setKey(&cfg, client, acc1.Account.License); err != nil {
+		return nil, err
+	}
+
+	progress += 10
+	progressChan <- progress
+
+	accData, err := acc1.fetchAccountData(&cfg, client)
+	if err != nil {
+		return nil, err
+	}
+
+	progress += 10
+	progressChan <- progress
+
+	if err := acc1.removeDevice(&cfg, client); err != nil {
+		return nil, err
+	}
+
+	progress += 10
+	progressChan <- progress
+
+	return accData, nil
 }

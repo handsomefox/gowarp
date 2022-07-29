@@ -3,7 +3,7 @@ package warp
 import (
 	"fmt"
 	"log"
-	"math/rand"
+	"sync"
 	"time"
 )
 
@@ -21,13 +21,40 @@ func NewStorage() *Storage {
 
 func (s *Storage) Fill(config *Config) {
 	for {
-		key, err := Generate(config)
-		if err != nil {
-			continue
-		}
+		var (
+			progressChan = make(chan int)
+			wg           = new(sync.WaitGroup)
+			key          *AccountData
+			err          error
+		)
 
-		log.Println("added key to storage")
-		s.keyChan <- *key
+		wg.Add(1)
+
+		go func(*Config, chan int) {
+			defer wg.Done()
+			defer close(progressChan)
+
+			key, err = Generate(config, progressChan)
+		}(config, progressChan)
+
+		wg.Add(1)
+
+		go func(chan int) {
+			defer wg.Done()
+
+			for progress := range progressChan {
+				log.Printf("current key generation progress: %v", progress)
+			}
+		}(progressChan)
+
+		wg.Wait()
+
+		if err != nil {
+			log.Printf("error when generating key: %v", err)
+		} else {
+			log.Println("added key to storage")
+			s.keyChan <- *key
+		}
 
 		time.Sleep(time.Minute + randomTime())
 	}
@@ -46,49 +73,4 @@ func (s *Storage) GetKey(config *ConfigData) (AccountData, error) {
 	default:
 		return AccountData{}, fmt.Errorf("no key was found")
 	}
-}
-
-// Generate handles generating a key for user.
-func Generate(config *Config) (*AccountData, error) {
-	client := createClient()
-	cfg := config.Get()
-
-	acc1, err := registerAccount(&cfg, client)
-	if err != nil {
-		return nil, err
-	}
-
-	acc2, err := registerAccount(&cfg, client)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := acc1.addReferrer(&cfg, client, acc2); err != nil {
-		return nil, err
-	}
-
-	if err := acc2.removeDevice(&cfg, client); err != nil {
-		return nil, err
-	}
-
-	keys := cfg.Keys
-
-	if err := acc1.setKey(&cfg, client, keys[rand.Intn(len(keys))]); err != nil {
-		return nil, err
-	}
-
-	if err := acc1.setKey(&cfg, client, acc1.Account.License); err != nil {
-		return nil, err
-	}
-
-	accData, err := acc1.fetchAccountData(&cfg, client)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := acc1.removeDevice(&cfg, client); err != nil {
-		return nil, err
-	}
-
-	return accData, nil
 }
