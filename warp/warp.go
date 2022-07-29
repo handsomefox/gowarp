@@ -26,7 +26,7 @@ func (warp *Warp) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fstr := "Account type: %v\nData available: %vGB\nLicense: %v\n"
+	fstr := "\nAccount type: %v\nData available: %vGB\nLicense: %v\n"
 
 	// fast path
 	storageKey, err := warp.storage.GetKey(&warp.GetConfig().data)
