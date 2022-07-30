@@ -9,9 +9,9 @@ import (
 	"time"
 )
 
-// createClient returns a pointer to http.Client which is set up to work with cloudflare APIs
+// newClient returns a pointer to http.Client which is set up to work with cloudflare APIs
 // if normal client is used, cloudflare returns an HTTP403 response.
-func createClient() *http.Client {
+func newClient() *http.Client {
 	return &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
@@ -31,7 +31,7 @@ func createClient() *http.Client {
 
 // handleBrowsers sets the Content-Type header depending on the browser User-Agent.
 // for normal browser, the value is "text/event-stream", for firefox the value is "text/plain"
-// this is done because if the firefox has "text/event-stream" set, instead of displaing the text,
+// this is done because if the firefox has "text/event-stream" set, instead of displaying the text,
 // it tries to download a .txt file every single page update.
 func handleBrowsers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Connection", "keep-alive")
@@ -43,30 +43,30 @@ func handleBrowsers(w http.ResponseWriter, r *http.Request) {
 }
 
 // setCommonHeaders is a helper function that sets headers required for each request to cloudflare APIs.
-func setCommonHeaders(config *ConfigData, r *http.Request) {
-	r.Header.Set("CF-Client-Version", config.CfClientVersion)
-	r.Header.Set("Host", config.Host)
-	r.Header.Set("User-Agent", config.UserAgent)
+func setCommonHeaders(cdata *ConfigData, r *http.Request) *http.Request {
+	r.Header.Set("CF-Client-Version", cdata.CfClientVersion)
+	r.Header.Set("Host", cdata.Host)
+	r.Header.Set("User-Agent", cdata.UserAgent)
 	r.Header.Set("Connection", "Keep-Alive")
+
+	return r
 }
 
-func registerAccount(config *ConfigData, client *http.Client) (*Account, error) {
-	request, err := http.NewRequest("POST", config.BaseURL+"/reg", http.NoBody)
+func registerAccount(client *http.Client, cdata *ConfigData) (*Account, error) {
+	request, err := http.NewRequest("POST", cdata.BaseURL+"/reg", http.NoBody)
 	if err != nil {
 		return nil, ErrCreateRequest
 	}
 
-	setCommonHeaders(config, request)
+	request = setCommonHeaders(cdata, request)
 
 	response, err := client.Do(request)
 	if err != nil {
 		return nil, ErrRegisterAccount
 	}
-
 	defer response.Body.Close()
 
-	acc := Account{}
-
+	var acc Account
 	if err := json.NewDecoder(response.Body).Decode(&acc); err != nil {
 		return nil, ErrDecodeResponse
 	}

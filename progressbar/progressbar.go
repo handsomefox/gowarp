@@ -6,11 +6,15 @@ import (
 	"net/http"
 )
 
+const (
+	graph  = "█"                     // used to show the progress
+	format = "\r[%-50s]%3d%% %8d/%d" // progress bar format
+)
+
 type Bar struct {
 	writer  http.ResponseWriter
 	flusher http.Flusher
 	rate    string
-	graph   string
 	percent int
 	current int
 	total   int
@@ -21,7 +25,6 @@ func New(w http.ResponseWriter, f http.Flusher) *Bar {
 	pb := &Bar{
 		current: 0,
 		total:   100,
-		graph:   "█",
 		writer:  w,
 		flusher: f,
 	}
@@ -31,36 +34,36 @@ func New(w http.ResponseWriter, f http.Flusher) *Bar {
 }
 
 // Update is called to update the progressbar progress.
-func (b *Bar) Update(count int) {
+func (bar *Bar) Update(count int) {
 	for i := 1; i <= 10; i++ {
-		b.play(count + i)
+		bar.play(count + i)
 	}
-	b.flush()
-	b.flusher.Flush()
+	bar.flush()
+	bar.flusher.Flush()
 }
 
-func (b *Bar) init() {
-	b.percent = b.getPercent()
-	for i := 0; i < b.percent; i += 2 {
-		b.rate += b.graph
+func (bar *Bar) init() {
+	bar.percent = bar.getPercent()
+	for i := 0; i < bar.percent; i += 2 {
+		bar.rate += graph
 	}
-	b.Update(0)
+	bar.Update(0)
 }
 
-func (b *Bar) getPercent() int {
-	return int(float32(b.current) / float32(b.total) * 100)
+func (bar *Bar) getPercent() int {
+	return int(float32(bar.current) / float32(bar.total) * 100)
 }
 
-func (b *Bar) play(cur int) {
-	b.current = cur
-	last := b.percent
-	b.percent = b.getPercent()
+func (bar *Bar) play(cur int) {
+	bar.current = cur
+	last := bar.percent
+	bar.percent = bar.getPercent()
 
-	if b.percent != last && b.percent%2 == 0 {
-		b.rate += b.graph
+	if bar.percent != last && bar.percent%2 == 0 {
+		bar.rate += graph
 	}
 }
 
-func (b *Bar) flush() {
-	fmt.Fprintf(b.writer, "\r[%-50s]%3d%% %8d/%d", b.rate, b.percent, b.current, b.total)
+func (bar *Bar) flush() {
+	fmt.Fprintf(bar.writer, format, bar.rate, bar.percent, bar.current, bar.total)
 }

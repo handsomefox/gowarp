@@ -25,17 +25,18 @@ type License struct {
 	License string `json:"license"`
 }
 
-func (acc *Account) addReferrer(config *ConfigData, client *http.Client, second *Account) error {
+func (acc *Account) addReferrer(client *http.Client, cdata *ConfigData, other *Account) error {
 	payload, _ := json.Marshal(map[string]string{
-		"referrer": second.ID,
+		"referrer": other.ID,
 	})
 
-	request, err := http.NewRequest("PATCH", config.BaseURL+"/reg/"+acc.ID, bytes.NewBuffer(payload))
+	request, err := http.NewRequest("PATCH", cdata.BaseURL+"/reg/"+acc.ID, bytes.NewBuffer(payload))
 	if err != nil {
 		return ErrCreateRequest
 	}
 
-	setCommonHeaders(config, request)
+	request = setCommonHeaders(cdata, request)
+
 	request.Header.Set("Content-Type", "application/json; charset=UTF-8")
 	request.Header.Set("Authorization", "Bearer "+acc.Token)
 
@@ -47,13 +48,14 @@ func (acc *Account) addReferrer(config *ConfigData, client *http.Client, second 
 	return nil
 }
 
-func (acc *Account) removeDevice(config *ConfigData, client *http.Client) error {
-	request, err := http.NewRequest("DELETE", config.BaseURL+"/reg/"+acc.ID, http.NoBody)
+func (acc *Account) removeDevice(client *http.Client, cdata *ConfigData) error {
+	request, err := http.NewRequest("DELETE", cdata.BaseURL+"/reg/"+acc.ID, http.NoBody)
 	if err != nil {
 		return ErrCreateRequest
 	}
 
-	setCommonHeaders(config, request)
+	request = setCommonHeaders(cdata, request)
+
 	request.Header.Set("Content-Type", "application/json; charset=UTF-8")
 	request.Header.Set("Authorization", "Bearer "+acc.Token)
 
@@ -65,13 +67,13 @@ func (acc *Account) removeDevice(config *ConfigData, client *http.Client) error 
 	return nil
 }
 
-func (acc *Account) setKey(config *ConfigData, client *http.Client, key string) error {
+func (acc *Account) setKey(client *http.Client, cdata *ConfigData, key string) error {
 	payload, _ := json.Marshal(map[string]string{
 		"license": key,
 	})
-	request, err := http.NewRequest("PUT", config.BaseURL+"/reg/"+acc.ID+"/account", bytes.NewBuffer(payload))
+	request, err := http.NewRequest("PUT", cdata.BaseURL+"/reg/"+acc.ID+"/account", bytes.NewBuffer(payload))
 
-	setCommonHeaders(config, request)
+	request = setCommonHeaders(cdata, request)
 
 	if err != nil {
 		return ErrCreateRequest
@@ -88,13 +90,14 @@ func (acc *Account) setKey(config *ConfigData, client *http.Client, key string) 
 	return nil
 }
 
-func (acc *Account) fetchAccountData(config *ConfigData, client *http.Client) (*AccountData, error) {
-	request, err := http.NewRequest("GET", config.BaseURL+"/reg/"+acc.ID+"/account", http.NoBody)
+func (acc *Account) fetchAccountData(client *http.Client, cdata *ConfigData) (*AccountData, error) {
+	request, err := http.NewRequest("GET", cdata.BaseURL+"/reg/"+acc.ID+"/account", http.NoBody)
 	if err != nil {
 		return nil, ErrCreateRequest
 	}
 
-	setCommonHeaders(config, request)
+	request = setCommonHeaders(cdata, request)
+
 	request.Header.Set("Authorization", "Bearer "+acc.Token)
 
 	response, err := client.Do(request)
@@ -103,10 +106,10 @@ func (acc *Account) fetchAccountData(config *ConfigData, client *http.Client) (*
 	}
 	defer response.Body.Close()
 
-	result := AccountData{}
-	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
+	var accountData AccountData
+	if err := json.NewDecoder(response.Body).Decode(&accountData); err != nil {
 		return nil, ErrDecodeAccData
 	}
 
-	return &result, nil
+	return &accountData, nil
 }

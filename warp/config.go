@@ -13,7 +13,7 @@ import (
 
 const (
 	defaultWaitTime = 45 * time.Second
-
+	// keys are used for parsing a new config.
 	cfClientVersionKey = "CfClientVersion"
 	userAgentKey       = "UserAgent"
 	hostKey            = "Host"
@@ -32,14 +32,14 @@ type ConfigData struct {
 }
 
 type Config struct {
-	data ConfigData
-	mu   sync.Mutex
+	cdata ConfigData
+	mu    sync.Mutex
 }
 
 func defaultConfig() *Config {
 	return &Config{
 		mu: sync.Mutex{},
-		data: ConfigData{
+		cdata: ConfigData{
 			CfClientVersion: "a-6.15-2405",
 			UserAgent:       "okhttp/3.12.1",
 			Host:            "api.cloudflareclient.com",
@@ -61,35 +61,35 @@ func NewConfig() *Config {
 }
 
 // triggers updates when requested.
-func (c *Config) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if err := c.Update(pastebinURL); err != nil { // FIXME: hardcoded URL
+func (cfg *Config) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if err := cfg.Update(pastebinURL); err != nil { // FIXME: hardcoded URL
 		fmt.Fprintln(w, fmt.Errorf("error updating config: %w", err))
 	}
 
 	fmt.Fprintln(w, "finished config update")
 }
 
-func (c *Config) Update(url string) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+func (cfg *Config) Update(url string) error {
+	cfg.mu.Lock()
+	defer cfg.mu.Unlock()
 
 	newConfig, err := loadConfigFromURL(url)
 	if err != nil {
 		return fmt.Errorf("error updating config")
 	}
 
-	c.data = newConfig.data
+	cfg.cdata = newConfig.cdata
 
-	log.Printf("%#v", c.data)
+	log.Printf("%#v", cfg.cdata)
 
 	return nil
 }
 
-func (c *Config) Get() ConfigData {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+func (cfg *Config) Get() ConfigData {
+	cfg.mu.Lock()
+	defer cfg.mu.Unlock()
 
-	return c.data
+	return cfg.cdata
 }
 
 func loadConfigFromURL(url string) (*Config, error) {
@@ -104,30 +104,30 @@ func loadConfigFromURL(url string) (*Config, error) {
 	scanner := bufio.NewScanner(response.Body)
 	for scanner.Scan() {
 		text := scanner.Text()
-
 		split := strings.Split(text, "=")
-		if len(split) < 2 {
+
+		if len(split) < 2 { // it should be a key=value pair
 			return nil, fmt.Errorf("unexpected config body: %v", text)
 		}
 
-		switch split[0] {
+		key, value := split[0], split[1]
+
+		switch key {
 		case cfClientVersionKey:
-			config.data.CfClientVersion = split[1]
+			config.cdata.CfClientVersion = value
 		case userAgentKey:
-			config.data.UserAgent = split[1]
+			config.cdata.UserAgent = value
 		case hostKey:
-			config.data.Host = split[1]
+			config.cdata.Host = value
 		case baseURLKey:
-			config.data.BaseURL = split[1]
+			config.cdata.BaseURL = value
 		case waitTimeKey:
-			i, err := strconv.Atoi(split[1])
-			if err == nil {
-				config.data.WaitTime = time.Duration(i) * time.Second
+			if i, err := strconv.Atoi(value); err == nil {
+				config.cdata.WaitTime = time.Duration(i) * time.Second
 			}
 		case keysKey:
-			keys := strings.Split(split[1], ",")
-			if len(keys) > 0 {
-				config.data.Keys = keys
+			if keys := strings.Split(value, ","); len(keys) > 0 {
+				config.cdata.Keys = keys
 			}
 		}
 	}

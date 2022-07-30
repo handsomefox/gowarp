@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const storeSize = 20
+const storageSize = 20 // length for the buffered channel where the generated keys are stored
 
 type Storage struct {
 	keyChan chan AccountData
@@ -15,17 +15,19 @@ type Storage struct {
 
 func NewStorage() *Storage {
 	return &Storage{
-		keyChan: make(chan AccountData, storeSize),
+		keyChan: make(chan AccountData, storageSize),
 	}
 }
 
-func (s *Storage) Fill(config *Config) {
+func (store *Storage) Fill(config *Config) {
 	for {
 		var (
 			progressChan = make(chan int)
-			wg           = new(sync.WaitGroup)
-			key          *AccountData
-			err          error
+
+			key *AccountData
+			err error
+
+			wg sync.WaitGroup
 		)
 
 		wg.Add(1)
@@ -53,23 +55,23 @@ func (s *Storage) Fill(config *Config) {
 			log.Printf("error when generating key: %v", err)
 		} else {
 			log.Println("added key to storage")
-			s.keyChan <- *key
+			store.keyChan <- *key
 		}
 
 		time.Sleep(time.Minute + randomTime())
 	}
 }
 
-func (s *Storage) GetKey(config *ConfigData) (AccountData, error) {
+func (store *Storage) GetKey(cdata *ConfigData) (AccountData, error) {
 	select {
-	case v, ok := <-s.keyChan:
-		if ok {
-			log.Println("got key from storage")
-
-			return v, nil
+	case accountData, ok := <-store.keyChan:
+		if !ok {
+			return AccountData{}, fmt.Errorf("channel is closed, can't get the key")
 		}
 
-		return AccountData{}, fmt.Errorf("channel is closed")
+		log.Println("got key from storage")
+
+		return accountData, nil
 	default:
 		return AccountData{}, fmt.Errorf("no key was found")
 	}

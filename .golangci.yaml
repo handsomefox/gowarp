@@ -36,8 +36,6 @@ linters-settings:
   goconst:
     min-len: 2
     min-occurrences: 3
-  varnamelen:
-    min-name-length: 2
   gocritic:
     enabled-tags:
       - diagnostic
@@ -101,7 +99,6 @@ linters:
     - thelper
     - tparallel
     - unconvert
-    - varnamelen
     - wastedassign
     - whitespace
     - wrapcheck
