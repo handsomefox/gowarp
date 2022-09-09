@@ -113,6 +113,7 @@ input[type="submit"]:hover {
 button {
   background: none;
   padding: 0;
+  border: none;
   color: #62CB31;
   text-decoration: none;
 }
