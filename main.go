@@ -20,7 +20,7 @@ func main() {
 	fileServer := http.FileServer(http.Dir("./ui/static"))
 	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 
-	if err := http.ListenAndServe(":8080"+os.Getenv("PORT"), mux); err != nil {
+	if err := http.ListenAndServe(":"+os.Getenv("PORT"), mux); err != nil {
 		log.Fatal(err)
 	}
 }
