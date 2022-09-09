@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"math/rand"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -29,19 +28,6 @@ func newClient() *http.Client {
 	}
 }
 
-// handleBrowsers sets the Content-Type header depending on the browser User-Agent.
-// for normal browser, the value is "text/event-stream", for firefox the value is "text/plain"
-// this is done because if the firefox has "text/event-stream" set, instead of displaying the text,
-// it tries to download a .txt file every single page update.
-func handleBrowsers(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
-
-	if strings.Contains(r.UserAgent(), "Firefox/") {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	}
-}
-
 // setCommonHeaders is a helper function that sets headers required for each request to cloudflare APIs.
 func setCommonHeaders(cdata *ConfigData, r *http.Request) *http.Request {
 	r.Header.Set("CF-Client-Version", cdata.CfClientVersion)
@@ -53,21 +39,21 @@ func setCommonHeaders(cdata *ConfigData, r *http.Request) *http.Request {
 }
 
 func registerAccount(client *http.Client, cdata *ConfigData) (*Account, error) {
-	request, err := http.NewRequest("POST", cdata.BaseURL+"/reg", http.NoBody)
+	req, err := http.NewRequest("POST", cdata.BaseURL+"/reg", http.NoBody)
 	if err != nil {
 		return nil, ErrCreateRequest
 	}
 
-	request = setCommonHeaders(cdata, request)
+	req = setCommonHeaders(cdata, req)
 
-	response, err := client.Do(request)
+	res, err := client.Do(req)
 	if err != nil {
 		return nil, ErrRegisterAccount
 	}
-	defer response.Body.Close()
+	defer res.Body.Close()
 
 	var acc Account
-	if err := json.NewDecoder(response.Body).Decode(&acc); err != nil {
+	if err := json.NewDecoder(res.Body).Decode(&acc); err != nil {
 		return nil, ErrDecodeResponse
 	}
 

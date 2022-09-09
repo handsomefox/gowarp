@@ -22,32 +22,21 @@ func NewStorage() *Storage {
 func (store *Storage) Fill(config *Config) {
 	for {
 		var (
-			progressChan = make(chan int)
-
 			key *AccountData
 			err error
-
-			wg sync.WaitGroup
+			wg  sync.WaitGroup
 		)
 
-		wg.Add(1)
-
-		go func(*Config, chan int) {
-			defer wg.Done()
-			defer close(progressChan)
-
-			key, err = Generate(config, progressChan)
-		}(config, progressChan)
+		progress := make(chan int)
 
 		wg.Add(1)
 
-		go func(chan int) {
+		go func(*Config) {
 			defer wg.Done()
+			defer close(progress)
 
-			for progress := range progressChan {
-				log.Printf("current key generation progress: %v", progress)
-			}
-		}(progressChan)
+			key, err = Generate(config)
+		}(config)
 
 		wg.Wait()
 
