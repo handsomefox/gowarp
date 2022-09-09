@@ -5,16 +5,22 @@ import (
 	"net/http"
 	"os"
 
-	"gowarp/warp"
+	"gowarp/pkg/warp"
 )
+
+var warpHandle = warp.New()
 
 func main() {
 	mux := http.NewServeMux()
 
-	warpHandle := warp.New()
+	mux.HandleFunc("/", home)
+	mux.HandleFunc("/key/generate", keyGenerate)
+	mux.HandleFunc("/config/update", configUpdate)
 
-	mux.Handle("/", warpHandle)
-	mux.Handle("/config/update", warpHandle.GetConfig())
+	fileServer := http.FileServer(http.Dir("./ui/static"))
+	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 
-	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), mux))
+	if err := http.ListenAndServe(":8080"+os.Getenv("PORT"), mux); err != nil {
+		log.Fatal(err)
+	}
 }

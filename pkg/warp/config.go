@@ -60,15 +60,6 @@ func NewConfig() *Config {
 	return defaultConfig()
 }
 
-// triggers updates when requested.
-func (cfg *Config) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if err := cfg.Update(pastebinURL); err != nil { // FIXME: hardcoded URL
-		fmt.Fprintln(w, fmt.Errorf("error updating config: %w", err))
-	}
-
-	fmt.Fprintln(w, "finished config update")
-}
-
 func (cfg *Config) Update(url string) error {
 	cfg.mu.Lock()
 	defer cfg.mu.Unlock()
@@ -93,15 +84,15 @@ func (cfg *Config) Get() ConfigData {
 }
 
 func loadConfigFromURL(url string) (*Config, error) {
-	response, err := http.Get(url) //nolint:gosec // the url is a code constant, not user input
+	res, err := http.Get(url) //nolint:gosec // the url is a code constant, not user input
 	if err != nil {
 		return nil, fmt.Errorf("error %w when loading config from %v", err, url)
 	}
-	defer response.Body.Close()
+	defer res.Body.Close()
 
 	config := defaultConfig()
 
-	scanner := bufio.NewScanner(response.Body)
+	scanner := bufio.NewScanner(res.Body)
 	for scanner.Scan() {
 		text := scanner.Text()
 		split := strings.Split(text, "=")
