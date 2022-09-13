@@ -4,14 +4,22 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strings"
+	"time"
 
 	"gowarp/pkg/warp"
+)
+
+const (
+	requestLimit  = 500
+	requestPeriod = time.Hour * 6
 )
 
 type Server struct {
 	mux *http.ServeMux
 
-	warpHandle *warp.Warp
+	warpHandle     *warp.Warp
+	requestCounter *IPRequestCounter
 
 	homeTmpl   *template.Template
 	configTmpl *template.Template
@@ -22,10 +30,15 @@ func New() *Server {
 	server := &Server{
 		mux:        http.NewServeMux(),
 		warpHandle: warp.New(),
+		requestCounter: &IPRequestCounter{
+			ips: make(map[string]int),
+		},
 	}
 
 	server.initTemplates()
 	server.setupRoutes()
+
+	go server.clearBlockedIPs()
 
 	return server
 }
@@ -131,5 +144,34 @@ func (s *Server) generateKey() http.HandlerFunc {
 			log.Println(err)
 			errorWithCode(w, http.StatusInternalServerError)
 		}
+	}
+}
+
+func (s *Server) Limiter(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ipAddr := strings.Split(r.RemoteAddr, ":")[0]
+
+		s.requestCounter.Inc(ipAddr)
+
+		if s.requestCounter.Value(ipAddr) >= requestLimit {
+			errorWithCode(w, http.StatusTooManyRequests)
+
+			return
+		}
+		if next == nil {
+			http.DefaultServeMux.ServeHTTP(w, r)
+
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (s *Server) clearBlockedIPs() {
+	for {
+		s.requestCounter.mu.Lock()
+		s.requestCounter.ips = make(map[string]int)
+		s.requestCounter.mu.Unlock()
+		time.Sleep(requestPeriod)
 	}
 }
