@@ -26,5 +26,5 @@ func main() {
 		panic(err)
 	}
 
-	log.Fatal(http.ListenAndServe(":8080"+os.Getenv("PORT"), middleware.Handle(server.New())))
+	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), middleware.Handle(server.New())))
 }
