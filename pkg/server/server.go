@@ -4,7 +4,6 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -12,7 +11,7 @@ import (
 )
 
 const (
-	requestLimit  = 200
+	requestLimit  = 500
 	requestPeriod = time.Hour * 6
 )
 
@@ -170,15 +169,10 @@ func (s *Server) Limiter(next http.Handler) http.Handler {
 
 		cv := s.requestCounter.Value(ipAddr)
 
-		log.Println("Counter: " + strconv.Itoa(cv) + ", IP: " + ipAddr)
+		// log.Println("Counter: " + strconv.Itoa(cv) + ", IP: " + ipAddr)
 
 		if cv >= requestLimit {
 			errorWithCode(w, http.StatusTooManyRequests)
-
-			return
-		}
-		if next == nil {
-			http.DefaultServeMux.ServeHTTP(w, r)
 
 			return
 		}
