@@ -148,9 +148,23 @@ func (s *Server) generateKey() http.HandlerFunc {
 	}
 }
 
+func readUserIP(r *http.Request) string {
+	IPAddress := r.Header.Get("X-Real-Ip")
+
+	if IPAddress == "" {
+		IPAddress = r.Header.Get("X-Forwarded-For")
+	}
+
+	if IPAddress == "" {
+		IPAddress = strings.Split(r.RemoteAddr, ":")[0]
+	}
+
+	return IPAddress
+}
+
 func (s *Server) Limiter(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ipAddr := strings.Split(r.RemoteAddr, ":")[0]
+		ipAddr := readUserIP(r)
 
 		s.requestCounter.Inc(ipAddr)
 
