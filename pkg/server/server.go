@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -11,7 +12,7 @@ import (
 )
 
 const (
-	requestLimit  = 500
+	requestLimit  = 200
 	requestPeriod = time.Hour * 6
 )
 
@@ -153,7 +154,11 @@ func (s *Server) Limiter(next http.Handler) http.Handler {
 
 		s.requestCounter.Inc(ipAddr)
 
-		if s.requestCounter.Value(ipAddr) >= requestLimit {
+		cv := s.requestCounter.Value(ipAddr)
+
+		log.Println("Counter: " + strconv.Itoa(cv) + ", IP: " + ipAddr)
+
+		if cv >= requestLimit {
 			errorWithCode(w, http.StatusTooManyRequests)
 
 			return
