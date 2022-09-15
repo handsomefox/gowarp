@@ -34,7 +34,6 @@ func setCommonHeaders(cdata *ConfigData, r *http.Request) *http.Request {
 	r.Header.Set("Host", cdata.Host)
 	r.Header.Set("User-Agent", cdata.UserAgent)
 	r.Header.Set("Connection", "Keep-Alive")
-
 	return r
 }
 
@@ -43,7 +42,6 @@ func registerAccount(client *http.Client, cdata *ConfigData) (*Account, error) {
 	if err != nil {
 		return nil, ErrCreateRequest
 	}
-
 	req = setCommonHeaders(cdata, req)
 
 	res, err := client.Do(req)

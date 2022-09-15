@@ -70,7 +70,6 @@ func (cfg *Config) Update(url string) error {
 	}
 
 	cfg.cdata = newConfig.cdata
-
 	log.Printf("%#v", cfg.cdata)
 
 	return nil
@@ -79,7 +78,6 @@ func (cfg *Config) Update(url string) error {
 func (cfg *Config) Get() ConfigData {
 	cfg.mu.Lock()
 	defer cfg.mu.Unlock()
-
 	return cfg.cdata
 }
 

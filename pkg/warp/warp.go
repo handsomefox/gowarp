@@ -17,17 +17,13 @@ type Warp struct {
 }
 
 func (warp *Warp) GetKey() (*AccountData, error) {
-	// fast path
 	storageKey, err := warp.storage.GetKey(&warp.GetConfig().cdata)
 	if err == nil {
 		log.Println("fast path, got key from stash")
-
 		return &storageKey, nil
 	}
 
-	// slow path
 	log.Println("slow path, generating key")
-
 	generatedKey, err := warp.Generate()
 	if err != nil {
 		return nil, fmt.Errorf("\nError when creating keys: %w", err)
@@ -89,7 +85,6 @@ func (warp *Warp) Generate() (*AccountData, error) {
 	)
 
 	wg.Add(1)
-
 	go func(*Config) {
 		defer wg.Done()
 

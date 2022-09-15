@@ -30,7 +30,6 @@ func (store *Storage) Fill(config *Config) {
 		progress := make(chan int)
 
 		wg.Add(1)
-
 		go func(*Config) {
 			defer wg.Done()
 			defer close(progress)
@@ -57,9 +56,7 @@ func (store *Storage) GetKey(cdata *ConfigData) (AccountData, error) {
 		if !ok {
 			return AccountData{}, fmt.Errorf("channel is closed, can't get the key")
 		}
-
 		log.Println("got key from storage")
-
 		return accountData, nil
 	default:
 		return AccountData{}, fmt.Errorf("no key was found")
