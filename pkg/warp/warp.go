@@ -85,7 +85,7 @@ func (warp *Warp) Generate() (*AccountData, error) {
 	)
 
 	wg.Add(1)
-	go func(*Config) {
+	go func(config *Config) {
 		defer wg.Done()
 
 		key, err = Generate(config)

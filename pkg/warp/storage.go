@@ -30,7 +30,7 @@ func (store *Storage) Fill(config *Config) {
 		progress := make(chan int)
 
 		wg.Add(1)
-		go func(*Config) {
+		go func(config *Config) {
 			defer wg.Done()
 			defer close(progress)
 
