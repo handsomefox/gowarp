@@ -9,6 +9,5 @@ import (
 )
 
 func main() {
-	s := server.New()
-	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), s.Limiter(s)))
+	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), server.New()))
 }

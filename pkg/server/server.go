@@ -4,22 +4,15 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"strings"
-	"time"
 
 	"gowarp/pkg/warp"
 )
 
-const (
-	requestLimit  = 500
-	requestPeriod = time.Hour * 6
-)
-
 type Server struct {
-	mux *http.ServeMux
+	warpHandle *warp.Warp
+	mux        *http.ServeMux
 
-	warpHandle     *warp.Warp
-	requestCounter *IPRequestCounter
+	rateLimiter http.Handler
 
 	homeTmpl   *template.Template
 	configTmpl *template.Template
@@ -28,35 +21,29 @@ type Server struct {
 
 func New() *Server {
 	server := &Server{
-		mux:        http.NewServeMux(),
 		warpHandle: warp.New(),
-		requestCounter: &IPRequestCounter{
-			ips: make(map[string]int),
-		},
+		mux:        http.NewServeMux(),
 	}
 
-	server.initTemplates()
-	server.setupRoutes()
+	server.setupTemplates()
 
-	go server.clearBlockedIPs()
+	fileServer := http.FileServer(http.Dir("./ui/static"))
+	server.mux.Handle("/static/", http.StripPrefix("/static", fileServer))
+
+	server.mux.HandleFunc("/", server.home())
+	server.mux.HandleFunc("/key/generate", server.generateKey())
+	server.mux.HandleFunc("/config/update", server.updateConfig())
+
+	server.rateLimiter = newRateLimiter().Limits(server.mux)
 
 	return server
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.mux.ServeHTTP(w, r)
+	s.rateLimiter.ServeHTTP(w, r)
 }
 
-func (s *Server) setupRoutes() {
-	fileServer := http.FileServer(http.Dir("./ui/static"))
-
-	s.mux.HandleFunc("/", s.home())
-	s.mux.HandleFunc("/key/generate", s.generateKey())
-	s.mux.HandleFunc("/config/update", s.updateConfig())
-	s.mux.Handle("/static/", http.StripPrefix("/static", fileServer))
-}
-
-func (s *Server) initTemplates() {
+func (s *Server) setupTemplates() {
 	ts, err := template.ParseFiles([]string{
 		"./ui/html/home.page.tmpl.html",
 		"./ui/html/base.layout.tmpl.html",
@@ -99,7 +86,6 @@ func (s *Server) home() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
-
 			return
 		}
 
@@ -128,7 +114,6 @@ func (s *Server) generateKey() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			errorWithCode(w, http.StatusMethodNotAllowed)
-
 			return
 		}
 
@@ -136,7 +121,6 @@ func (s *Server) generateKey() http.HandlerFunc {
 		if err != nil {
 			log.Println(err)
 			errorWithCode(w, http.StatusInternalServerError)
-
 			return
 		}
 
@@ -144,47 +128,5 @@ func (s *Server) generateKey() http.HandlerFunc {
 			log.Println(err)
 			errorWithCode(w, http.StatusInternalServerError)
 		}
-	}
-}
-
-func readUserIP(r *http.Request) string {
-	IPAddress := r.Header.Get("X-Real-Ip")
-
-	if IPAddress == "" {
-		IPAddress = r.Header.Get("X-Forwarded-For")
-	}
-
-	if IPAddress == "" {
-		IPAddress = strings.Split(r.RemoteAddr, ":")[0]
-	}
-
-	return IPAddress
-}
-
-func (s *Server) Limiter(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ipAddr := readUserIP(r)
-
-		s.requestCounter.Inc(ipAddr)
-
-		cv := s.requestCounter.Value(ipAddr)
-
-		// log.Println("Counter: " + strconv.Itoa(cv) + ", IP: " + ipAddr)
-
-		if cv >= requestLimit {
-			errorWithCode(w, http.StatusTooManyRequests)
-
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
-func (s *Server) clearBlockedIPs() {
-	for {
-		s.requestCounter.mu.Lock()
-		s.requestCounter.ips = make(map[string]int)
-		s.requestCounter.mu.Unlock()
-		time.Sleep(requestPeriod)
 	}
 }
