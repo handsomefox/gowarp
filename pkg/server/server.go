@@ -69,7 +69,7 @@ func (s *Server) home() http.HandlerFunc {
 func (s *Server) updateConfig() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		message := "finished config update"
-		if err := s.w.UpdateConfig(); err != nil {
+		if err := s.w.UpdateConfig(r.Context()); err != nil {
 			message = "failed to update config"
 		}
 
@@ -87,7 +87,7 @@ func (s *Server) generateKey() http.HandlerFunc {
 			return
 		}
 
-		generatedKey, err := s.w.GetKey()
+		generatedKey, err := s.w.GetKey(r.Context())
 		if err != nil {
 			log.Println(err)
 			errorWithCode(w, http.StatusInternalServerError)

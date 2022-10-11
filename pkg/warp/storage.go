@@ -1,6 +1,7 @@
 package warp
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -41,7 +42,7 @@ func (store *Storage) Fill(cfg *Config) {
 			defer wg.Done()
 			defer close(progress)
 
-			key, err = Generate(config)
+			key, err = Generate(context.Background(), config)
 		}(cfg)
 
 		wg.Wait()

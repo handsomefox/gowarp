@@ -2,6 +2,8 @@ package warp
 
 import (
 	"bufio"
+	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -36,7 +38,9 @@ type Config struct {
 	mu    sync.Mutex
 }
 
-func defaultConfig() *Config {
+var ErrUnexpectedBody = errors.New("unexpected response body")
+
+func NewConfig() *Config {
 	return &Config{
 		mu: sync.Mutex{},
 		cdata: ConfigData{
@@ -56,17 +60,13 @@ func defaultConfig() *Config {
 	}
 }
 
-func NewConfig() *Config {
-	return defaultConfig()
-}
-
-func (cfg *Config) Update(url string) error {
+func (cfg *Config) Update(ctx context.Context, url string) error {
 	cfg.mu.Lock()
 	defer cfg.mu.Unlock()
 
-	newConfig, err := loadConfigFromURL(url)
+	newConfig, err := loadConfigFromURL(ctx, url)
 	if err != nil {
-		return fmt.Errorf("error updating config")
+		return fmt.Errorf("%w: %s", err, "error updating config")
 	}
 
 	cfg.cdata = newConfig.cdata
@@ -77,26 +77,32 @@ func (cfg *Config) Update(url string) error {
 
 func (cfg *Config) Get() ConfigData {
 	cfg.mu.Lock()
-	defer cfg.mu.Unlock()
-	return cfg.cdata
+	data := cfg.cdata
+	cfg.mu.Unlock()
+	return data
 }
 
-func loadConfigFromURL(url string) (*Config, error) {
-	res, err := http.Get(url) //nolint:gosec // the url is a code constant, not user input
+func loadConfigFromURL(ctx context.Context, url string) (*Config, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
-		return nil, fmt.Errorf("error %w when loading config from %v", err, url)
+		return nil, fmt.Errorf("%s: %w", "error creating request to get config", err)
+	}
+
+	client := newClient()
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", fmt.Sprintf("error loading config from %s", url), err)
 	}
 	defer res.Body.Close()
 
-	config := defaultConfig()
-
+	config := NewConfig()
 	scanner := bufio.NewScanner(res.Body)
 	for scanner.Scan() {
 		text := scanner.Text()
 		split := strings.Split(text, "=")
 
 		if len(split) < 2 { // it should be a key=value pair
-			return nil, fmt.Errorf("unexpected config body: %v", text)
+			return nil, fmt.Errorf("%w: %s", ErrUnexpectedBody, text)
 		}
 
 		key, value := split[0], split[1]

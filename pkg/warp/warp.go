@@ -2,6 +2,7 @@
 package warp
 
 import (
+	"context"
 	"crypto/rand"
 	"fmt"
 	"log"
@@ -17,7 +18,7 @@ type Warp struct {
 	storage *Storage
 }
 
-func (warp *Warp) GetKey() (*AccountData, error) {
+func (warp *Warp) GetKey(ctx context.Context) (*AccountData, error) {
 	storageKey, err := warp.storage.GetKey(&warp.GetConfig().cdata)
 	if err == nil {
 		log.Println("fast path, got key from stash")
@@ -25,7 +26,7 @@ func (warp *Warp) GetKey() (*AccountData, error) {
 	}
 
 	log.Println("slow path, generating key")
-	generatedKey, err := warp.Generate()
+	generatedKey, err := warp.Generate(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("\nError when creating keys: %w", err)
 	}
@@ -33,14 +34,14 @@ func (warp *Warp) GetKey() (*AccountData, error) {
 	return generatedKey, nil
 }
 
-func (warp *Warp) UpdateConfig() error {
-	return warp.config.Update(pastebinURL)
+func (warp *Warp) UpdateConfig(ctx context.Context) error {
+	return warp.config.Update(ctx, pastebinURL)
 }
 
 func New() *Warp {
 	cfg := NewConfig()
 
-	if err := cfg.Update(pastebinURL); err != nil {
+	if err := cfg.Update(context.TODO(), pastebinURL); err != nil {
 		log.Printf("error updating config: %v", err)
 	}
 
@@ -54,7 +55,7 @@ func New() *Warp {
 		for {
 			time.Sleep(6 * time.Hour)
 
-			if err := cfg.Update(pastebinURL); err != nil {
+			if err := cfg.Update(context.TODO(), pastebinURL); err != nil {
 				log.Printf("error updating config: %v", err)
 			}
 		}
@@ -70,13 +71,13 @@ func (warp *Warp) GetConfig() *Config {
 	return warp.config
 }
 
-func (warp *Warp) Update() {
-	if err := warp.config.Update(pastebinURL); err != nil {
+func (warp *Warp) Update(ctx context.Context) {
+	if err := warp.config.Update(ctx, pastebinURL); err != nil {
 		log.Println(err)
 	}
 }
 
-func (warp *Warp) Generate() (*AccountData, error) {
+func (warp *Warp) Generate(ctx context.Context) (*AccountData, error) {
 	var (
 		config = warp.GetConfig()
 		wg     = new(sync.WaitGroup)
@@ -89,7 +90,7 @@ func (warp *Warp) Generate() (*AccountData, error) {
 	go func(config *Config) {
 		defer wg.Done()
 
-		key, err = Generate(config)
+		key, err = Generate(ctx, config)
 	}(config)
 
 	wg.Wait()
@@ -102,27 +103,24 @@ func (warp *Warp) Generate() (*AccountData, error) {
 }
 
 // Generate handles generating a key for user.
-func Generate(config *Config) (*AccountData, error) {
-	var (
-		client = newClient()
-		cfg    = config.Get()
-	)
+func Generate(ctx context.Context, config *Config) (*AccountData, error) {
+	cfg := config.Get()
 
-	acc1, err := NewAccount(client, &cfg)
+	acc1, err := NewAccount(ctx, &cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	acc2, err := NewAccount(client, &cfg)
+	acc2, err := NewAccount(ctx, &cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := acc1.addReferrer(client, &cfg, acc2); err != nil {
+	if err := acc1.addReferrer(ctx, &cfg, acc2); err != nil {
 		return nil, err
 	}
 
-	if err := acc2.removeDevice(client, &cfg); err != nil {
+	if err := acc2.removeDevice(ctx, &cfg); err != nil {
 		return nil, err
 	}
 
@@ -133,20 +131,20 @@ func Generate(config *Config) (*AccountData, error) {
 		n = big.NewInt(0)
 	}
 
-	if err := acc1.setKey(client, &cfg, keys[n.Int64()]); err != nil {
+	if err := acc1.setKey(ctx, &cfg, keys[n.Int64()]); err != nil {
 		return nil, err
 	}
 
-	if err := acc1.setKey(client, &cfg, acc1.Account.License); err != nil {
+	if err := acc1.setKey(ctx, &cfg, acc1.Account.License); err != nil {
 		return nil, err
 	}
 
-	accData, err := acc1.fetchAccountData(client, &cfg)
+	accData, err := acc1.fetchAccountData(ctx, &cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := acc1.removeDevice(client, &cfg); err != nil {
+	if err := acc1.removeDevice(ctx, &cfg); err != nil {
 		return nil, err
 	}
 
