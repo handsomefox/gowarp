@@ -17,9 +17,9 @@ func main() {
 	srv := &http.Server{
 		Addr:              ":" + os.Getenv("PORT"),
 		Handler:           sh,
-		ReadTimeout:       5 * time.Second,
-		WriteTimeout:      10 * time.Second,
-		ReadHeaderTimeout: 3 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	if err := srv.ListenAndServe(); err != nil {
