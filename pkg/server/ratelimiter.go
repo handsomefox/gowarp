@@ -28,12 +28,12 @@ func (sc *ipRequestCounter) Get(key string) int {
 	return sc.ips[key]
 }
 
-type rateLimiter struct {
+type RateLimiter struct {
 	requestCounter *ipRequestCounter
 }
 
-func newRateLimiter() *rateLimiter {
-	rl := &rateLimiter{
+func NewRateLimiter() *RateLimiter {
+	rl := &RateLimiter{
 		requestCounter: &ipRequestCounter{
 			ips: make(map[string]int, 0),
 		},
@@ -43,7 +43,7 @@ func newRateLimiter() *rateLimiter {
 	return rl
 }
 
-func (rl *rateLimiter) Limits(next http.Handler) http.Handler {
+func (rl *RateLimiter) Decorate(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ipAddr := readUserIP(r)
 		rl.requestCounter.Increment(ipAddr)
@@ -53,11 +53,11 @@ func (rl *rateLimiter) Limits(next http.Handler) http.Handler {
 			errorWithCode(w, http.StatusTooManyRequests)
 			return
 		}
-		next.ServeHTTP(w, r)
+		h.ServeHTTP(w, r)
 	})
 }
 
-func (rl *rateLimiter) clearBlockedIPs() {
+func (rl *RateLimiter) clearBlockedIPs() {
 	for {
 		rl.requestCounter.mu.Lock()
 		rl.requestCounter.ips = make(map[string]int)
