@@ -41,8 +41,8 @@ func (store *Storage) Fill(cfg *Config) {
 		go func(config *Config) {
 			defer wg.Done()
 			defer close(progress)
-
-			key, err = Generate(context.Background(), config.Get())
+			cfg := config.Get()
+			key, err = Generate(context.Background(), &cfg)
 		}(cfg)
 
 		wg.Wait()

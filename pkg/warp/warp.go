@@ -78,7 +78,8 @@ func (warp *Warp) Update(ctx context.Context) {
 }
 
 func (warp *Warp) Generate(ctx context.Context) (*AccountData, error) {
-	key, err := Generate(ctx, warp.GetConfig().Get())
+	cfg := warp.GetConfig().Get()
+	key, err := Generate(ctx, &cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -86,25 +87,25 @@ func (warp *Warp) Generate(ctx context.Context) (*AccountData, error) {
 }
 
 // Generate handles generating a key for user.
-func Generate(ctx context.Context, cfg ConfigData) (*AccountData, error) {
+func Generate(ctx context.Context, cfg *ConfigData) (*AccountData, error) {
 	log.Println("Started generating key")
 	start := time.Now()
 
-	acc1, err := NewAccount(ctx, &cfg)
+	acc1, err := NewAccount(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	acc2, err := NewAccount(ctx, &cfg)
+	acc2, err := NewAccount(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := acc1.addReferrer(ctx, &cfg, acc2); err != nil {
+	if err := acc1.addReferrer(ctx, cfg, acc2); err != nil {
 		return nil, err
 	}
 
-	if err := acc2.removeDevice(ctx, &cfg); err != nil {
+	if err := acc2.removeDevice(ctx, cfg); err != nil {
 		return nil, err
 	}
 
@@ -115,20 +116,20 @@ func Generate(ctx context.Context, cfg ConfigData) (*AccountData, error) {
 		n = big.NewInt(0)
 	}
 
-	if err := acc1.setKey(ctx, &cfg, keys[n.Int64()]); err != nil {
+	if err := acc1.setKey(ctx, cfg, keys[n.Int64()]); err != nil {
 		return nil, err
 	}
 
-	if err := acc1.setKey(ctx, &cfg, acc1.Account.License); err != nil {
+	if err := acc1.setKey(ctx, cfg, acc1.Account.License); err != nil {
 		return nil, err
 	}
 
-	accData, err := acc1.fetchAccountData(ctx, &cfg)
+	accData, err := acc1.fetchAccountData(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := acc1.removeDevice(ctx, &cfg); err != nil {
+	if err := acc1.removeDevice(ctx, cfg); err != nil {
 		return nil, err
 	}
 
