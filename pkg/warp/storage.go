@@ -42,19 +42,20 @@ func (store *Storage) Fill(cfg *Config) {
 			defer wg.Done()
 			defer close(progress)
 
-			key, err = Generate(context.Background(), config)
+			key, err = Generate(context.Background(), config.Get())
 		}(cfg)
 
 		wg.Wait()
 
 		if err != nil {
-			log.Printf("error when generating key: %s", err)
+			log.Printf("Error when generating key: %s", err)
 		} else {
-			log.Println("added key to storage")
+			log.Println("Added key to storage")
 			store.keyChan <- key
 		}
 
-		time.Sleep(2 * time.Minute)
+		log.Println("Fill sleeping")
+		time.Sleep(time.Minute)
 	}
 }
 

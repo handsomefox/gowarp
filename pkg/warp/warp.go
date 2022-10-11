@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"math/big"
-	"sync"
 	"time"
 )
 
@@ -20,15 +19,16 @@ type Warp struct {
 
 func (warp *Warp) GetKey(ctx context.Context) (*AccountData, error) {
 	storageKey, err := warp.storage.GetKey(&warp.GetConfig().cdata)
-	if err == nil {
-		log.Println("fast path, got key from stash")
+	if err != nil {
+		log.Printf("Couldn't get key from storage: %s", err)
+	} else {
 		return storageKey, nil
 	}
 
-	log.Println("slow path, generating key")
+	log.Println("Going the slow path")
 	generatedKey, err := warp.Generate(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("\nError when creating keys: %w", err)
+		return nil, fmt.Errorf("error when creating keys: %w", err)
 	}
 
 	return generatedKey, nil
@@ -78,33 +78,17 @@ func (warp *Warp) Update(ctx context.Context) {
 }
 
 func (warp *Warp) Generate(ctx context.Context) (*AccountData, error) {
-	var (
-		config = warp.GetConfig()
-		wg     = new(sync.WaitGroup)
-
-		key *AccountData
-		err error
-	)
-
-	wg.Add(1)
-	go func(config *Config) {
-		defer wg.Done()
-
-		key, err = Generate(ctx, config)
-	}(config)
-
-	wg.Wait()
-
+	key, err := Generate(ctx, warp.GetConfig().Get())
 	if err != nil {
 		return nil, err
 	}
-
 	return key, nil
 }
 
 // Generate handles generating a key for user.
-func Generate(ctx context.Context, config *Config) (*AccountData, error) {
-	cfg := config.Get()
+func Generate(ctx context.Context, cfg ConfigData) (*AccountData, error) {
+	log.Println("Started generating key")
+	start := time.Now()
 
 	acc1, err := NewAccount(ctx, &cfg)
 	if err != nil {
@@ -148,5 +132,6 @@ func Generate(ctx context.Context, config *Config) (*AccountData, error) {
 		return nil, err
 	}
 
+	log.Printf("Generating key took: %vms", time.Since(start).Milliseconds())
 	return accData, nil
 }
