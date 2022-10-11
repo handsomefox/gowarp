@@ -2,9 +2,10 @@
 package warp
 
 import (
+	"crypto/rand"
 	"fmt"
 	"log"
-	"math/rand"
+	"math/big"
 	"sync"
 	"time"
 )
@@ -127,7 +128,12 @@ func Generate(config *Config) (*AccountData, error) {
 
 	keys := cfg.Keys
 
-	if err := acc1.setKey(client, &cfg, keys[rand.Intn(len(keys))]); err != nil {
+	n, err := rand.Int(rand.Reader, big.NewInt(int64(len(keys)))) // Range=[0; Length)
+	if err != nil {
+		n = big.NewInt(0)
+	}
+
+	if err := acc1.setKey(client, &cfg, keys[n.Int64()]); err != nil {
 		return nil, err
 	}
 
