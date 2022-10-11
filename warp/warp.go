@@ -116,7 +116,9 @@ func Generate(ctx context.Context, cfg *ConfigData) (*AccountData, error) {
 		n = big.NewInt(0)
 	}
 
-	if err := acc1.setKey(ctx, cfg, keys[n.Int64()]); err != nil {
+	key := keys[n.Int64()]
+	log.Printf("Used key: %s", key)
+	if err := acc1.setKey(ctx, cfg, key); err != nil {
 		return nil, err
 	}
 
