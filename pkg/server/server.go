@@ -1,81 +1,51 @@
 package server
 
 import (
-	"html/template"
+	"fmt"
 	"log"
 	"net/http"
 
 	"gowarp/pkg/warp"
 )
 
+// Server is the main gowarp http.Handler.
 type Server struct {
-	warpHandle *warp.Warp
-	mux        *http.ServeMux
+	handler   http.Handler
+	templates *TemplateStorage
 
-	rateLimiter http.Handler
-
-	homeTmpl   *template.Template
-	configTmpl *template.Template
-	keyTmpl    *template.Template
+	w *warp.Warp
 }
 
-func New() *Server {
-	server := &Server{
-		warpHandle: warp.New(),
-		mux:        http.NewServeMux(),
+func NewHandler() (*Server, error) {
+	// Create storage for templates
+	ts, err := NewTemplateStorage()
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", "error creating the server", err)
 	}
 
-	server.setupTemplates()
+	// Create warp instance
+	wh := warp.New()
 
-	fileServer := http.FileServer(http.Dir("./ui/static"))
-	server.mux.Handle("/static/", http.StripPrefix("/static", fileServer))
+	// Create server
+	server := &Server{
+		w:         wh,
+		templates: ts,
+	}
+	mux := http.NewServeMux()
+	// Setup routes
+	mux.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir("./ui/static"))))
+	mux.HandleFunc("/", server.home())
+	mux.HandleFunc("/config/update", server.updateConfig())
+	mux.HandleFunc("/key/generate", server.generateKey())
 
-	server.mux.HandleFunc("/", server.home())
-	server.mux.HandleFunc("/key/generate", server.generateKey())
-	server.mux.HandleFunc("/config/update", server.updateConfig())
+	// Apply ratelimiting, logging, else...
+	server.handler = Decorate(mux, NewRateLimiter())
 
-	server.rateLimiter = newRateLimiter().Limits(server.mux)
-
-	return server
+	return server, nil
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.rateLimiter.ServeHTTP(w, r)
-}
-
-func (s *Server) setupTemplates() {
-	ts, err := template.ParseFiles([]string{
-		"./ui/html/home.page.tmpl.html",
-		"./ui/html/base.layout.tmpl.html",
-		"./ui/html/footer.partial.tmpl.html",
-	}...)
-	if err != nil {
-		panic(err)
-	}
-
-	s.homeTmpl = ts
-
-	ts, err = template.ParseFiles([]string{
-		"./ui/html/config.page.tmpl.html",
-		"./ui/html/base.layout.tmpl.html",
-		"./ui/html/footer.partial.tmpl.html",
-	}...)
-	if err != nil {
-		panic(err)
-	}
-
-	s.configTmpl = ts
-
-	ts, err = template.ParseFiles([]string{
-		"./ui/html/key.page.tmpl.html",
-		"./ui/html/base.layout.tmpl.html",
-		"./ui/html/footer.partial.tmpl.html",
-	}...)
-	if err != nil {
-		panic(err)
-	}
-
-	s.keyTmpl = ts
+	s.handler.ServeHTTP(w, r)
 }
 
 func errorWithCode(w http.ResponseWriter, status int) {
@@ -89,7 +59,7 @@ func (s *Server) home() http.HandlerFunc {
 			return
 		}
 
-		if err := s.homeTmpl.Execute(w, nil); err != nil {
+		if err := s.templates.Home().Execute(w, nil); err != nil {
 			log.Println(err)
 			errorWithCode(w, http.StatusInternalServerError)
 		}
@@ -99,11 +69,11 @@ func (s *Server) home() http.HandlerFunc {
 func (s *Server) updateConfig() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		message := "finished config update"
-		if err := s.warpHandle.UpdateConfig(); err != nil {
+		if err := s.w.UpdateConfig(); err != nil {
 			message = "failed to update config"
 		}
 
-		if err := s.configTmpl.Execute(w, message); err != nil {
+		if err := s.templates.Config().Execute(w, message); err != nil {
 			log.Println(err)
 			errorWithCode(w, http.StatusInternalServerError)
 		}
@@ -117,14 +87,14 @@ func (s *Server) generateKey() http.HandlerFunc {
 			return
 		}
 
-		generatedKey, err := s.warpHandle.GetKey()
+		generatedKey, err := s.w.GetKey()
 		if err != nil {
 			log.Println(err)
 			errorWithCode(w, http.StatusInternalServerError)
 			return
 		}
 
-		if err := s.keyTmpl.Execute(w, generatedKey); err != nil {
+		if err := s.templates.Key().Execute(w, generatedKey); err != nil {
 			log.Println(err)
 			errorWithCode(w, http.StatusInternalServerError)
 		}
