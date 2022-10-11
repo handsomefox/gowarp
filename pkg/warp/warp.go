@@ -21,7 +21,7 @@ func (warp *Warp) GetKey() (*AccountData, error) {
 	storageKey, err := warp.storage.GetKey(&warp.GetConfig().cdata)
 	if err == nil {
 		log.Println("fast path, got key from stash")
-		return &storageKey, nil
+		return storageKey, nil
 	}
 
 	log.Println("slow path, generating key")

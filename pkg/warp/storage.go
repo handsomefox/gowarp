@@ -1,25 +1,32 @@
 package warp
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"sync"
 	"time"
 )
 
+var ErrGetKey = errors.New("error getting the key from storage")
+
 const storageSize = 20 // length for the buffered channel where the generated keys are stored
 
+// Storage is the internal storage for keys with automatically generates and stores them.
+// Use (*Storage).Fill(&warp.Config) on a goroutine.
 type Storage struct {
-	keyChan chan AccountData
+	keyChan chan *AccountData
 }
 
+// NewStorage returns a new instance of *Storage with a buffered channel.
 func NewStorage() *Storage {
 	return &Storage{
-		keyChan: make(chan AccountData, storageSize),
+		keyChan: make(chan *AccountData, storageSize),
 	}
 }
 
-func (store *Storage) Fill(config *Config) {
+// Fill fills the internal storage with correctly generated keys.
+func (store *Storage) Fill(cfg *Config) {
 	for {
 		var (
 			key *AccountData
@@ -35,30 +42,31 @@ func (store *Storage) Fill(config *Config) {
 			defer close(progress)
 
 			key, err = Generate(config)
-		}(config)
+		}(cfg)
 
 		wg.Wait()
 
 		if err != nil {
-			log.Printf("error when generating key: %v", err)
+			log.Printf("error when generating key: %s", err)
 		} else {
 			log.Println("added key to storage")
-			store.keyChan <- *key
+			store.keyChan <- key
 		}
 
-		time.Sleep(time.Minute + randomTime())
+		time.Sleep(2 * time.Minute)
 	}
 }
 
-func (store *Storage) GetKey(cdata *ConfigData) (AccountData, error) {
+// GetKey returns a valid key from the storage or an error.
+func (store *Storage) GetKey(cfg *ConfigData) (*AccountData, error) {
 	select {
 	case accountData, ok := <-store.keyChan:
 		if !ok {
-			return AccountData{}, fmt.Errorf("channel is closed, can't get the key")
+			return nil, fmt.Errorf("%w: %s", ErrGetKey, "channel is closed, can't get the key")
 		}
-		log.Println("got key from storage")
+		log.Println("Got key from storage", accountData)
 		return accountData, nil
 	default:
-		return AccountData{}, fmt.Errorf("no key was found")
+		return nil, fmt.Errorf("%w: %s", ErrGetKey, "no key was found")
 	}
 }
