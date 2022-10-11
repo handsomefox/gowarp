@@ -2,7 +2,9 @@ package warp
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
@@ -18,6 +20,27 @@ type Account struct {
 	ID      string  `json:"id"`
 	Account License `json:"account"`
 	Token   string  `json:"token"`
+}
+
+func NewAccount(client *http.Client, cdata *ConfigData) (*Account, error) {
+	req, err := http.NewRequestWithContext(context.TODO(), http.MethodPost, cdata.BaseURL+"/reg", http.NoBody)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", "error creating a request to register account", err)
+	}
+	req = setCommonHeaders(cdata, req)
+
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", "error registering an account", err)
+	}
+	defer res.Body.Close()
+
+	var acc Account
+	if err := json.NewDecoder(res.Body).Decode(&acc); err != nil {
+		return nil, fmt.Errorf("%s: %w", "error decoding account data", err)
+	}
+
+	return &acc, nil
 }
 
 // License is just a license key.

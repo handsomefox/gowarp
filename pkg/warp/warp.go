@@ -108,12 +108,12 @@ func Generate(config *Config) (*AccountData, error) {
 		cfg    = config.Get()
 	)
 
-	acc1, err := registerAccount(client, &cfg)
+	acc1, err := NewAccount(client, &cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	acc2, err := registerAccount(client, &cfg)
+	acc2, err := NewAccount(client, &cfg)
 	if err != nil {
 		return nil, err
 	}
