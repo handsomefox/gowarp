@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"gowarp/pkg/warp"
+	"gowarp/warp"
 )
 
 // Server is the main gowarp http.Handler.

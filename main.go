@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"gowarp/pkg/server"
+	"gowarp/server"
 )
 
 func main() {
