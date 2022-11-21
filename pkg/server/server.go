@@ -39,6 +39,8 @@ func NewServer(useProxy bool, mongoURI *string) (*Server, error) {
 		panic(err) // nowhere to store keys :/
 	}
 
+	log.Println("Connected to the database")
+
 	// Create storage for templates
 	ts, err := storage.NewTemplateStorage()
 	if err != nil {
