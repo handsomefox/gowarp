@@ -18,14 +18,14 @@ import (
 // Server is the main gowarp http.Handler.
 type Server struct {
 	handler   http.Handler
-	templates *TemplateStorage
+	templates *storage.TemplateStorage
 	service   *warp.Service
 	storage   *storage.Storage
 }
 
 func NewHandler(useProxy bool) (*Server, error) {
 	// Create storage for templates
-	ts, err := NewTemplateStorage()
+	ts, err := storage.NewTemplateStorage()
 	if err != nil {
 		return nil, fmt.Errorf("error creating the server: %w", err)
 	}
