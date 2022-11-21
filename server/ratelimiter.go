@@ -6,50 +6,50 @@ import (
 	"time"
 )
 
-const (
-	requestLimit  = 500
-	requestPeriod = time.Hour * 6
+var (
+	RequestLimit  = 500
+	RequestPeriod = time.Hour * 6
 )
 
-type ipRequestCounter struct {
-	ips map[string]int
+type IPRequestCount struct {
 	mu  sync.Mutex
+	ips map[string]int
 }
 
-func (sc *ipRequestCounter) Increment(key string) {
+func (sc *IPRequestCount) Increment(key string) {
 	sc.mu.Lock()
 	sc.ips[key]++
 	sc.mu.Unlock()
 }
 
-func (sc *ipRequestCounter) Get(key string) int {
+func (sc *IPRequestCount) Get(key string) int {
 	sc.mu.Lock()
 	defer sc.mu.Unlock()
 	return sc.ips[key]
 }
 
 type RateLimiter struct {
-	requestCounter *ipRequestCounter
+	requestCounter *IPRequestCount
 }
 
 func NewRateLimiter() *RateLimiter {
 	rl := &RateLimiter{
-		requestCounter: &ipRequestCounter{
+		requestCounter: &IPRequestCount{
 			ips: make(map[string]int, 0),
 		},
 	}
-	go rl.clearBlockedIPs()
+	go rl.Clear()
 
 	return rl
 }
 
 func (rl *RateLimiter) Decorate(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ipAddr := readUserIP(r)
+		ipAddr := ReadUserIP(r)
 		rl.requestCounter.Increment(ipAddr)
 		cv := rl.requestCounter.Get(ipAddr)
 
-		if cv >= requestLimit {
+		if cv >= RequestLimit {
 			errorWithCode(w, http.StatusTooManyRequests)
 			return
 		}
@@ -57,16 +57,16 @@ func (rl *RateLimiter) Decorate(h http.Handler) http.Handler {
 	})
 }
 
-func (rl *RateLimiter) clearBlockedIPs() {
+func (rl *RateLimiter) Clear() {
 	for {
 		rl.requestCounter.mu.Lock()
 		rl.requestCounter.ips = make(map[string]int)
 		rl.requestCounter.mu.Unlock()
-		time.Sleep(requestPeriod)
+		time.Sleep(RequestPeriod)
 	}
 }
 
-func readUserIP(r *http.Request) string {
+func ReadUserIP(r *http.Request) string {
 	IPAddress := r.Header.Get("X-Real-Ip")
 	if IPAddress == "" {
 		IPAddress = r.Header.Get("X-Forwarded-For")
