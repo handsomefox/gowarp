@@ -22,7 +22,10 @@ func fallback(ctx context.Context) (*cfg.Config, error) {
 }
 
 func GetConfig(ctx context.Context) (*cfg.Config, error) {
-	config := cfg.Default()
+	config, err := fallback(ctx)
+	if err != nil {
+		config = cfg.Default()
+	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, URL, http.NoBody)
 	if err != nil {
