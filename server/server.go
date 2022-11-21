@@ -9,7 +9,6 @@ import (
 
 	"github.com/handsomefox/gowarp/client"
 	"github.com/handsomefox/gowarp/client/cfg/pastebin"
-	"github.com/handsomefox/gowarp/client/cfg/serdar"
 	"github.com/handsomefox/gowarp/storage"
 )
 
@@ -36,7 +35,7 @@ func NewHandler(useProxy bool) (*Server, error) {
 		storage:   storage.NewStorage(),
 	}
 
-	config, err := serdar.GetConfig(context.Background())
+	config, err := pastebin.GetConfig(context.Background())
 	if err != nil {
 		panic(err) // we probably have outdated keys anyway, no point in continuing.
 	}
