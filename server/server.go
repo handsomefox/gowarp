@@ -36,18 +36,25 @@ func NewHandler() (*Server, error) {
 		storage:   storage.NewStorage(),
 	}
 
-	go server.storage.Fill(server.service)
+	config, err := serdar.GetConfig(context.Background())
+	if err != nil {
+		panic(err) // we probably have outdated keys anyway, no point in continuing.
+	}
+	server.service.UpdateConfig(config)
+
 	go func() {
 		for {
+			time.Sleep(1 * time.Hour) // update config every hour.
+
 			config, err := serdar.GetConfig(context.Background())
 			if err != nil {
-				time.Sleep(1 * time.Minute)
+				continue
 			}
 			server.service.UpdateConfig(config)
-
-			time.Sleep(1 * time.Hour)
 		}
 	}()
+
+	go server.storage.Fill(server.service)
 
 	mux := http.NewServeMux()
 	// Setup routes
