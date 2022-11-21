@@ -55,12 +55,7 @@ func (am *AccountModel) GetAny(ctx context.Context) (*models.Account, error) {
 }
 
 func (am *AccountModel) Delete(ctx context.Context, id any) error {
-	objID, ok := id.(primitive.ObjectID)
-	if !ok {
-		return models.ErrInvalidKey
-	}
-
-	_, err := am.collection.DeleteOne(ctx, bson.D{primitive.E{Key: "_id", Value: objID}})
+	_, err := am.collection.DeleteOne(ctx, bson.D{primitive.E{Key: "_id", Value: id}})
 	if err != nil {
 		log.Println(err)
 		return models.ErrDeleteFailed

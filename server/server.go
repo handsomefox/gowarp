@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/handsomefox/gowarp/client"
 	"github.com/handsomefox/gowarp/client/cfg/pastebin"
+	"github.com/handsomefox/gowarp/models/mongo"
 	"github.com/handsomefox/gowarp/storage"
 )
 
@@ -28,11 +30,19 @@ func NewHandler(useProxy bool) (*Server, error) {
 		return nil, fmt.Errorf("error creating the server: %w", err)
 	}
 
+	// Connect to databse
+	db, err := mongo.NewAccountModel(context.TODO(), os.Getenv("MONGO_URI"))
+	if err != nil {
+		panic(err) // nowhere to store keys :/
+	}
+
 	// Create server
 	server := &Server{
 		templates: ts,
 		service:   client.NewService(nil, useProxy),
-		storage:   storage.NewStorage(),
+		storage: &storage.Storage{
+			AM: db,
+		},
 	}
 
 	config, err := pastebin.GetConfig(context.Background())

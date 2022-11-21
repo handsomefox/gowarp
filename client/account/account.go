@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/handsomefox/gowarp/client"
+	"github.com/handsomefox/gowarp/models"
 )
 
 // Data represents the response with CF account data, including the key.
@@ -111,7 +112,7 @@ func (acc *Account) ApplyKey(ctx context.Context, c *client.Client, key string) 
 	return nil
 }
 
-func (acc *Account) GetAccountData(ctx context.Context, c *client.Client) (*Data, error) {
+func (acc *Account) GetAccountData(ctx context.Context, c *client.Client) (*models.Account, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+"/reg/"+acc.ID+"/account", http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request to fetch account data: %w", err)
@@ -125,7 +126,7 @@ func (acc *Account) GetAccountData(ctx context.Context, c *client.Client) (*Data
 	}
 	defer res.Body.Close()
 
-	var accountData Data
+	var accountData models.Account
 	if err := json.NewDecoder(res.Body).Decode(&accountData); err != nil {
 		return nil, fmt.Errorf("error decoding account data: %w", err)
 	}

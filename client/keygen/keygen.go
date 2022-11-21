@@ -9,6 +9,7 @@ import (
 
 	"github.com/handsomefox/gowarp/client"
 	"github.com/handsomefox/gowarp/client/account"
+	"github.com/handsomefox/gowarp/models"
 )
 
 type CreateAccountError struct {
@@ -25,7 +26,7 @@ func NewCreateAccountError(reason string) CreateAccountError {
 	}
 }
 
-func MakeKey(ctx context.Context, s *client.WarpService) (*account.Data, error) {
+func MakeKey(ctx context.Context, s *client.WarpService) (*models.Account, error) {
 	log.Println("Started generating key")
 	start := time.Now()
 
