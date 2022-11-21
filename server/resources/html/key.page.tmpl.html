@@ -1,0 +1,12 @@
+{{template "base" .}}
+
+{{define "title"}}Key generated!{{end}}
+
+{{define "body"}}
+<center>
+    <h1>Your key is here!</h1>
+    <p>License type: {{.Type}}</p>
+    <p>Data: {{.RefCount}}GB</p>
+    <p>Key: {{.License}}</p>
+</center>
+{{end}}

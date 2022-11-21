@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/handsomefox/gowarp/client/cfg"
+	"github.com/handsomefox/gowarp/warp/cfg"
 )
 
 var ErrUnexpectedBody = errors.New("unexpected response body")

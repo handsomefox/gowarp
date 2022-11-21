@@ -8,17 +8,17 @@ import (
 	"os"
 	"time"
 
-	"github.com/handsomefox/gowarp/client"
-	"github.com/handsomefox/gowarp/client/cfg/pastebin"
 	"github.com/handsomefox/gowarp/models/mongo"
 	"github.com/handsomefox/gowarp/server/storage"
+	"github.com/handsomefox/gowarp/warp"
+	"github.com/handsomefox/gowarp/warp/cfg/pastebin"
 )
 
 // Server is the main gowarp http.Handler.
 type Server struct {
 	handler   http.Handler
 	templates *TemplateStorage
-	service   *client.WarpService
+	service   *warp.Service
 	storage   *storage.Storage
 }
 
@@ -38,7 +38,7 @@ func NewHandler(useProxy bool) (*Server, error) {
 	// Create server
 	server := &Server{
 		templates: ts,
-		service:   client.NewService(nil, useProxy),
+		service:   warp.NewService(nil, useProxy),
 		storage: &storage.Storage{
 			AM: db,
 		},
@@ -66,7 +66,7 @@ func NewHandler(useProxy bool) (*Server, error) {
 
 	mux := http.NewServeMux()
 	// Setup routes
-	mux.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir("./ui/static"))))
+	mux.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir("./server/resources/static"))))
 	mux.HandleFunc("/", server.home())
 	mux.HandleFunc("/config/update", server.updateConfig())
 	mux.HandleFunc("/key/generate", server.generateKey())

@@ -30,6 +30,8 @@ func NewAccountModel(ctx context.Context, uri string) (*AccountModel, error) {
 	}
 	collection := client.Database("gowarp").Collection("keys")
 
+	log.Println("connected to the database")
+
 	return &AccountModel{collection: collection}, nil
 }
 

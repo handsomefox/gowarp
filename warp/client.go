@@ -1,4 +1,4 @@
-package client
+package warp
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/handsomefox/gowarp/client/cfg"
-	"github.com/handsomefox/gowarp/client/proxy"
+	"github.com/handsomefox/gowarp/warp/cfg"
+	"github.com/handsomefox/gowarp/warp/proxy"
 )
 
 // Client is the actual client used to make requests to CF.
@@ -30,15 +30,15 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	return c.cl.Do(req) // in this case we need the errors from the actual client, no need to wrap.
 }
 
-// WarpService is the service used to make requests to CF.
-type WarpService struct {
+// Service is the service used to make requests to CF.
+type Service struct {
 	config *cfg.Config
 	mu     sync.Mutex
 
 	useProxy bool
 }
 
-func (c *WarpService) GetRequestClient(ctx context.Context) *Client {
+func (c *Service) GetRequestClient(ctx context.Context) *Client {
 	transport := proxiedTransport(http.ProxyFromEnvironment)
 	if c.useProxy {
 		px, err := proxy.Get(ctx)
@@ -58,18 +58,18 @@ func (c *WarpService) GetRequestClient(ctx context.Context) *Client {
 }
 
 // NewService returns a *Client, if no config is specified, the DefaultConfig() is used.
-func NewService(config *cfg.Config, useProxy bool) *WarpService {
+func NewService(config *cfg.Config, useProxy bool) *Service {
 	if config == nil {
 		config = cfg.Default()
 	}
-	return &WarpService{
+	return &Service{
 		config:   config,
 		mu:       sync.Mutex{},
 		useProxy: useProxy,
 	}
 }
 
-func (c *WarpService) UpdateConfig(newConfig *cfg.Config) {
+func (c *Service) UpdateConfig(newConfig *cfg.Config) {
 	log.Println("Updating config")
 	log.Println(newConfig)
 	c.mu.Lock()
@@ -77,31 +77,31 @@ func (c *WarpService) UpdateConfig(newConfig *cfg.Config) {
 	c.mu.Unlock()
 }
 
-func (c *WarpService) ClientVersion() string {
+func (c *Service) ClientVersion() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.config.ClientVersion
 }
 
-func (c *WarpService) UserAgent() string {
+func (c *Service) UserAgent() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.config.UserAgent
 }
 
-func (c *WarpService) Host() string {
+func (c *Service) Host() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.config.ClientVersion
 }
 
-func (c *WarpService) BaseURL() string {
+func (c *Service) BaseURL() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.config.BaseURL
 }
 
-func (c *WarpService) Keys() []string {
+func (c *Service) Keys() []string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -111,7 +111,7 @@ func (c *WarpService) Keys() []string {
 	return dst
 }
 
-func (c *WarpService) WaitTime() time.Duration {
+func (c *Service) WaitTime() time.Duration {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

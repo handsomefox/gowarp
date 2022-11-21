@@ -9,10 +9,10 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/handsomefox/gowarp/client"
-	"github.com/handsomefox/gowarp/client/keygen"
 	"github.com/handsomefox/gowarp/models"
 	"github.com/handsomefox/gowarp/models/mongo"
+	"github.com/handsomefox/gowarp/warp"
+	"github.com/handsomefox/gowarp/warp/keygen"
 )
 
 type Storage struct {
@@ -20,7 +20,7 @@ type Storage struct {
 }
 
 // Fill fills the internal storage with correctly generated keys.
-func (store *Storage) Fill(s *client.WarpService) {
+func (store *Storage) Fill(s *warp.Service) {
 	for {
 		if store.AM.Len(context.Background()) > 250 {
 			time.Sleep(10 * time.Second)
@@ -64,7 +64,7 @@ func (store *Storage) Fill(s *client.WarpService) {
 }
 
 // GetKey either returns a key that is already stored or creates a new one.
-func (store *Storage) GetKey(ctx context.Context, s *client.WarpService) (*models.Account, error) {
+func (store *Storage) GetKey(ctx context.Context, s *warp.Service) (*models.Account, error) {
 	item, err := store.AM.GetAny(ctx)
 	if err != nil {
 		key, err := keygen.MakeKey(ctx, s)
