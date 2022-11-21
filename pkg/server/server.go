@@ -34,7 +34,7 @@ func NewServer(useProxy bool, mongoURI *string) (*Server, error) {
 	}
 
 	// Connect to database
-	db, err := mongo.NewAccountModel(context.TODO(), os.Getenv(uri))
+	db, err := mongo.NewAccountModel(context.TODO(), uri)
 	if err != nil {
 		panic(err) // nowhere to store keys :/
 	}
