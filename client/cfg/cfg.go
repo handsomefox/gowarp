@@ -4,10 +4,12 @@ import "time"
 
 // Config is the configuration required for the client to work.
 type Config struct {
-	ClientVersion, UserAgent, Host, BaseURL string
-
-	Keys     []string
-	WaitTime time.Duration
+	ClientVersion string
+	UserAgent     string
+	Host          string
+	BaseURL       string
+	Keys          []string
+	WaitTime      time.Duration
 }
 
 func Default() *Config {

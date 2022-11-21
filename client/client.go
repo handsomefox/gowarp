@@ -15,9 +15,11 @@ import (
 
 // Client is the actual client used to make requests to CF.
 type Client struct {
-	cl *http.Client
-
-	ClientVersion, UserAgent, Host, BaseURL string
+	cl            *http.Client
+	ClientVersion string
+	UserAgent     string
+	Host          string
+	BaseURL       string
 }
 
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
@@ -30,8 +32,8 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 
 // WarpService is the service used to make requests to CF.
 type WarpService struct {
-	mu     sync.Mutex
 	config *cfg.Config
+	mu     sync.Mutex
 
 	useProxy bool
 }
@@ -61,8 +63,8 @@ func NewService(config *cfg.Config, useProxy bool) *WarpService {
 		config = cfg.Default()
 	}
 	return &WarpService{
-		mu:       sync.Mutex{},
 		config:   config,
+		mu:       sync.Mutex{},
 		useProxy: useProxy,
 	}
 }

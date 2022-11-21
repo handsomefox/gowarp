@@ -12,8 +12,8 @@ var (
 )
 
 type IPRequestCount struct {
-	mu  sync.Mutex
 	ips map[string]int
+	mu  sync.Mutex
 }
 
 func (sc *IPRequestCount) Increment(key string) {

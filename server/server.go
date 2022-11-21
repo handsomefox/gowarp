@@ -18,9 +18,8 @@ import (
 type Server struct {
 	handler   http.Handler
 	templates *TemplateStorage
-
-	service *client.WarpService
-	storage *storage.Storage
+	service   *client.WarpService
+	storage   *storage.Storage
 }
 
 func NewHandler(useProxy bool) (*Server, error) {
