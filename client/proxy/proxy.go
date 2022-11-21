@@ -34,7 +34,7 @@ type Proxy struct {
 const URL = "https://public.freeproxyapi.com/api/Proxy/Medium"
 
 func Get(ctx context.Context) (*Proxy, error) {
-	for retries := 0; retries < 15; retries++ {
+	for retries := 0; retries < 100; retries++ {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, URL, http.NoBody)
 		if err != nil {
 			return nil, ErrRequestFailed
@@ -55,7 +55,7 @@ func Get(ctx context.Context) (*Proxy, error) {
 			continue
 		}
 
-		if proxy.AverageTime < 3000 {
+		if proxy.AverageTime < 1500 {
 			port := strconv.Itoa(proxy.Port)
 			addr := strings.ToLower(proxy.Type) + "://" + proxy.Host + ":" + port
 

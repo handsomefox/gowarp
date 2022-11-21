@@ -22,7 +22,7 @@ type Server struct {
 	storage *storage.Storage
 }
 
-func NewHandler() (*Server, error) {
+func NewHandler(useProxy bool) (*Server, error) {
 	// Create storage for templates
 	ts, err := NewTemplateStorage()
 	if err != nil {
@@ -32,7 +32,7 @@ func NewHandler() (*Server, error) {
 	// Create server
 	server := &Server{
 		templates: ts,
-		service:   client.NewService(nil, true),
+		service:   client.NewService(nil, useProxy),
 		storage:   storage.NewStorage(),
 	}
 

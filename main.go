@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	sh, err := server.NewHandler()
+	sh, err := server.NewHandler(false)
 	if err != nil {
 		panic(err)
 	}
