@@ -122,7 +122,6 @@ func proxiedTransport(px func(*http.Request) (*url.URL, error)) *http.Transport 
 			MinVersion: tls.VersionTLS12,
 			MaxVersion: tls.VersionTLS12,
 		},
-		DisableCompression:    false,
 		ForceAttemptHTTP2:     false,
 		Proxy:                 px,
 		MaxIdleConns:          100,
