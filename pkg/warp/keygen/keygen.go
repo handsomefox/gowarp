@@ -7,9 +7,9 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/handsomefox/gowarp/models"
-	"github.com/handsomefox/gowarp/warp"
-	"github.com/handsomefox/gowarp/warp/account"
+	"github.com/handsomefox/gowarp/pkg/models"
+	"github.com/handsomefox/gowarp/pkg/warp"
+	"github.com/handsomefox/gowarp/pkg/warp/account"
 )
 
 type CreateAccountError struct {

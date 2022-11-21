@@ -23,9 +23,9 @@ func NewTemplateStorage() (*TemplateStorage, error) {
 	}
 
 	home, err := template.ParseFiles([]string{
-		"./server/resources/html/home.page.tmpl.html",
-		"./server/resources/html/base.layout.tmpl.html",
-		"./server/resources/html/footer.partial.tmpl.html",
+		"./resources/html/home.page.tmpl.html",
+		"./resources/html/base.layout.tmpl.html",
+		"./resources/html/footer.partial.tmpl.html",
 	}...)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", err, "error creating home template")
@@ -33,9 +33,9 @@ func NewTemplateStorage() (*TemplateStorage, error) {
 	ts.store[Home] = home
 
 	config, err := template.ParseFiles([]string{
-		"./server/resources/html/config.page.tmpl.html",
-		"./server/resources/html/base.layout.tmpl.html",
-		"./server/resources/html/footer.partial.tmpl.html",
+		"./resources/html/config.page.tmpl.html",
+		"./resources/html/base.layout.tmpl.html",
+		"./resources/html/footer.partial.tmpl.html",
 	}...)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", err, "error creating config template")
@@ -43,9 +43,9 @@ func NewTemplateStorage() (*TemplateStorage, error) {
 	ts.store[Config] = config
 
 	key, err := template.ParseFiles([]string{
-		"./server/resources/html/key.page.tmpl.html",
-		"./server/resources/html/base.layout.tmpl.html",
-		"./server/resources/html/footer.partial.tmpl.html",
+		"./resources/html/key.page.tmpl.html",
+		"./resources/html/base.layout.tmpl.html",
+		"./resources/html/footer.partial.tmpl.html",
 	}...)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", err, "error creating key template")

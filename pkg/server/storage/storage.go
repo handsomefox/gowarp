@@ -9,10 +9,10 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/handsomefox/gowarp/models"
-	"github.com/handsomefox/gowarp/models/mongo"
-	"github.com/handsomefox/gowarp/warp"
-	"github.com/handsomefox/gowarp/warp/keygen"
+	"github.com/handsomefox/gowarp/pkg/models"
+	"github.com/handsomefox/gowarp/pkg/models/mongo"
+	"github.com/handsomefox/gowarp/pkg/warp"
+	"github.com/handsomefox/gowarp/pkg/warp/keygen"
 )
 
 type Storage struct {

@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/handsomefox/gowarp/warp/cfg"
-	"github.com/handsomefox/gowarp/warp/proxy"
+	"github.com/handsomefox/gowarp/pkg/warp/cfg"
+	"github.com/handsomefox/gowarp/pkg/warp/proxy"
 )
 
 // Client is the actual client used to make requests to CF.

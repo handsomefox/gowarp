@@ -8,11 +8,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/handsomefox/gowarp/models/mongo"
-	"github.com/handsomefox/gowarp/server/ratelimit"
-	"github.com/handsomefox/gowarp/server/storage"
-	"github.com/handsomefox/gowarp/warp"
-	"github.com/handsomefox/gowarp/warp/cfg/pastebin"
+	"github.com/handsomefox/gowarp/pkg/models/mongo"
+	"github.com/handsomefox/gowarp/pkg/server/ratelimit"
+	"github.com/handsomefox/gowarp/pkg/server/storage"
+	"github.com/handsomefox/gowarp/pkg/warp"
+	"github.com/handsomefox/gowarp/pkg/warp/cfg/pastebin"
 )
 
 // Server is the main gowarp http.Handler.

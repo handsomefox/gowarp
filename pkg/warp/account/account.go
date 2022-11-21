@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/handsomefox/gowarp/models"
-	"github.com/handsomefox/gowarp/warp"
+	"github.com/handsomefox/gowarp/pkg/models"
+	"github.com/handsomefox/gowarp/pkg/warp"
 )
 
 // Account represents a registered CF account.
