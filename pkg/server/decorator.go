@@ -10,9 +10,9 @@ type Decorator interface {
 type DecoratorFunc func(http.Handler) http.Handler
 
 // wrap the given http.Handler with all the provided decorators.
-func Decorate(who http.Handler, with ...Decorator) http.Handler {
+func Decorate(who http.Handler, with ...DecoratorFunc) http.Handler {
 	for _, w := range with {
-		who = w.Decorate(who)
+		who = w(who)
 	}
 	return who
 }

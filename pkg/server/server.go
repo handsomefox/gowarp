@@ -87,7 +87,7 @@ func NewServer(useProxy bool, mongoURI *string) (*Server, error) {
 	mux.HandleFunc("/key/generate", server.generateKey())
 
 	// Apply ratelimiting, logging, else...
-	server.handler = Decorate(mux, ratelimit.New())
+	server.handler = Decorate(mux, ratelimit.New().Decorate, timerMiddleware())
 
 	return server, nil
 }
