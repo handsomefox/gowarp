@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/handsomefox/gowarp/pkg/models/mongo"
-	"github.com/handsomefox/gowarp/pkg/server/ratelimit"
+	"github.com/handsomefox/gowarp/pkg/server/middleware"
 	"github.com/handsomefox/gowarp/pkg/server/storage"
 	"github.com/handsomefox/gowarp/pkg/warp"
 	"github.com/handsomefox/gowarp/pkg/warp/pastebin"
@@ -87,7 +87,7 @@ func NewServer(useProxy bool, mongoURI *string) (*Server, error) {
 	mux.HandleFunc("/key/generate", server.generateKey())
 
 	// Apply ratelimiting, logging, else...
-	server.handler = Decorate(mux, ratelimit.New().Decorate, timerMiddleware())
+	server.handler = middleware.Decorate(mux, middleware.RateLimiter(500, time.Hour*6), middleware.RequestTimer())
 
 	return server, nil
 }
