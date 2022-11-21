@@ -11,9 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/handsomefox/gowarp/pkg/warp/cfg"
+	"github.com/handsomefox/gowarp/pkg/warp"
 )
 
+// ErrUnexpectedBody is returned if the format of fetched configuration was unexpected.
 var ErrUnexpectedBody = errors.New("unexpected response body")
 
 const pastebinURL = "https://pastebin.com/raw/pwtQLBiK"
@@ -27,7 +28,8 @@ const (
 	keysKey            = "Keys"
 )
 
-func GetConfig(ctx context.Context) (*cfg.Config, error) {
+// GetConfig returns a new configuration from the hardcoded pastebin url.
+func GetConfig(ctx context.Context) (*warp.Config, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, pastebinURL, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request to get config: %w", err)
@@ -39,7 +41,7 @@ func GetConfig(ctx context.Context) (*cfg.Config, error) {
 	}
 	defer res.Body.Close()
 
-	config := &cfg.Config{
+	config := &warp.Config{
 		ClientVersion: cfClientVersionKey,
 		UserAgent:     userAgentKey,
 		Host:          hostKey,

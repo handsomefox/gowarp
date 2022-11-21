@@ -1,4 +1,4 @@
-package account
+package warp
 
 import (
 	"bytes"
@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/handsomefox/gowarp/pkg/models"
-	"github.com/handsomefox/gowarp/pkg/warp"
 )
 
 // Account represents a registered CF account.
@@ -20,7 +19,7 @@ type Account struct {
 	Token string `json:"token"`
 }
 
-func NewAccount(ctx context.Context, c *warp.Client) (*Account, error) {
+func NewAccount(ctx context.Context, c *Client) (*Account, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.BaseURL+"/reg", http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("error creating a request to register account: %w", err)
@@ -40,7 +39,7 @@ func NewAccount(ctx context.Context, c *warp.Client) (*Account, error) {
 	return &acc, nil
 }
 
-func (acc *Account) AddReferrer(ctx context.Context, c *warp.Client, referrer *Account) error {
+func (acc *Account) AddReferrer(ctx context.Context, c *Client, referrer *Account) error {
 	payload, err := json.Marshal(map[string]string{"referrer": referrer.ID})
 	if err != nil {
 		return fmt.Errorf("error marshalling account referrer: %w", err)
@@ -63,7 +62,7 @@ func (acc *Account) AddReferrer(ctx context.Context, c *warp.Client, referrer *A
 	return nil
 }
 
-func (acc *Account) RemoveDevice(ctx context.Context, c *warp.Client) error {
+func (acc *Account) RemoveDevice(ctx context.Context, c *Client) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.BaseURL+"/reg/"+acc.ID, http.NoBody)
 	if err != nil {
 		return fmt.Errorf("error creating a request to remove a device: %w", err)
@@ -81,7 +80,7 @@ func (acc *Account) RemoveDevice(ctx context.Context, c *warp.Client) error {
 	return nil
 }
 
-func (acc *Account) ApplyKey(ctx context.Context, c *warp.Client, key string) error {
+func (acc *Account) ApplyKey(ctx context.Context, c *Client, key string) error {
 	payload, err := json.Marshal(map[string]string{"license": key})
 	if err != nil {
 		return fmt.Errorf("error marshalling account license: %w", err)
@@ -105,7 +104,7 @@ func (acc *Account) ApplyKey(ctx context.Context, c *warp.Client, key string) er
 	return nil
 }
 
-func (acc *Account) GetAccountData(ctx context.Context, c *warp.Client) (*models.Account, error) {
+func (acc *Account) GetAccountData(ctx context.Context, c *Client) (*models.Account, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+"/reg/"+acc.ID+"/account", http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request to fetch account data: %w", err)
