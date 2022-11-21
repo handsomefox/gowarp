@@ -11,7 +11,7 @@ import (
 	"github.com/handsomefox/gowarp/client"
 	"github.com/handsomefox/gowarp/client/cfg/pastebin"
 	"github.com/handsomefox/gowarp/models/mongo"
-	"github.com/handsomefox/gowarp/storage"
+	"github.com/handsomefox/gowarp/server/storage"
 )
 
 // Server is the main gowarp http.Handler.
