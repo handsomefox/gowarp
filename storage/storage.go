@@ -10,29 +10,24 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/handsomefox/gowarp/client"
-	"github.com/handsomefox/gowarp/client/account"
 	"github.com/handsomefox/gowarp/client/keygen"
+	"github.com/handsomefox/gowarp/models"
+	"github.com/handsomefox/gowarp/models/mongo"
 )
 
 type Storage struct {
-	stack *Stack
-}
-
-func NewStorage() *Storage {
-	return &Storage{
-		stack: NewStack(),
-	}
+	AM *mongo.AccountModel
 }
 
 // Fill fills the internal storage with correctly generated keys.
 func (store *Storage) Fill(s *client.WarpService) {
 	for {
-		if store.stack.Len() > 40 {
+		if store.AM.Len(context.Background()) > 250 {
 			time.Sleep(10 * time.Second)
 			continue
 		}
 		var wg errgroup.Group
-		var createdKey *account.Data
+		var createdKey *models.Account
 
 		wg.Go(func() error {
 			key, err := keygen.MakeKey(context.Background(), s)
@@ -47,17 +42,30 @@ func (store *Storage) Fill(s *client.WarpService) {
 		if err := wg.Wait(); err != nil {
 			log.Printf("Error when generating key: %s", err)
 		} else {
-			store.stack.Push(*createdKey)
-			log.Println("Added key to storage")
+			i, err := createdKey.RefCount.Int64()
+			if err != nil {
+				log.Println("couldn't get generated key size")
+				continue
+			}
+			if i < 1000 {
+				log.Println("generated key was too small to use")
+				continue
+			}
+
+			id, err := store.AM.Insert(context.Background(), createdKey)
+			if err != nil {
+				log.Println("Failed to add key to the database", err)
+			}
+			log.Println("Added key to database, id: ", id)
 		}
-		log.Println("Currently stored key size: ", store.stack.Len())
+		log.Println("Currently stored keys: ", store.AM.Len(context.Background()))
 		time.Sleep(s.WaitTime())
 	}
 }
 
 // GetKey either returns a key that is already stored or creates a new one.
-func (store *Storage) GetKey(ctx context.Context, s *client.WarpService) (*account.Data, error) {
-	item, err := store.stack.Pop()
+func (store *Storage) GetKey(ctx context.Context, s *client.WarpService) (*models.Account, error) {
+	item, err := store.AM.GetAny(ctx)
 	if err != nil {
 		key, err := keygen.MakeKey(ctx, s)
 		if err != nil {
@@ -65,6 +73,10 @@ func (store *Storage) GetKey(ctx context.Context, s *client.WarpService) (*accou
 		}
 		return key, nil
 	}
-	log.Println("Currently stored key size: ", store.stack.Len())
+	if err := store.AM.Delete(ctx, item.ID); err != nil {
+		log.Println("Failed to remove key from database: ", err)
+	}
+
+	log.Println("Currently stored key size: ", store.AM.Len(ctx))
 	return item, nil
 }
