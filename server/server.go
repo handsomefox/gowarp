@@ -1,11 +1,16 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
-	"gowarp/warp"
+	"github.com/handsomefox/gowarp/client"
+	"github.com/handsomefox/gowarp/client/cfg/pastebin"
+	"github.com/handsomefox/gowarp/client/cfg/serdar"
+	"github.com/handsomefox/gowarp/storage"
 )
 
 // Server is the main gowarp http.Handler.
@@ -13,24 +18,44 @@ type Server struct {
 	handler   http.Handler
 	templates *TemplateStorage
 
-	w *warp.Warp
+	service *client.WarpService
+	storage *storage.Storage
 }
 
-func NewHandler() (*Server, error) {
+func NewHandler(useProxy bool) (*Server, error) {
 	// Create storage for templates
 	ts, err := NewTemplateStorage()
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", "error creating the server", err)
+		return nil, fmt.Errorf("error creating the server: %w", err)
 	}
-
-	// Create warp instance
-	wh := warp.New()
 
 	// Create server
 	server := &Server{
-		w:         wh,
 		templates: ts,
+		service:   client.NewService(nil, useProxy),
+		storage:   storage.NewStorage(),
 	}
+
+	config, err := serdar.GetConfig(context.Background())
+	if err != nil {
+		panic(err) // we probably have outdated keys anyway, no point in continuing.
+	}
+	server.service.UpdateConfig(config)
+
+	go func() {
+		for {
+			time.Sleep(1 * time.Hour) // update config every hour.
+
+			config, err := serdar.GetConfig(context.Background())
+			if err != nil {
+				continue
+			}
+			server.service.UpdateConfig(config)
+		}
+	}()
+
+	go server.storage.Fill(server.service)
+
 	mux := http.NewServeMux()
 	// Setup routes
 	mux.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir("./ui/static"))))
@@ -69,9 +94,13 @@ func (s *Server) home() http.HandlerFunc {
 func (s *Server) updateConfig() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		message := "finished config update"
-		if err := s.w.UpdateConfig(r.Context()); err != nil {
+
+		newConfig, err := pastebin.GetConfig(r.Context())
+		if err != nil {
 			message = "failed to update config"
 		}
+		log.Println(newConfig)
+		s.service.UpdateConfig(newConfig)
 
 		if err := s.templates.Config().Execute(w, message); err != nil {
 			log.Println(err)
@@ -87,14 +116,14 @@ func (s *Server) generateKey() http.HandlerFunc {
 			return
 		}
 
-		generatedKey, err := s.w.GetKey(r.Context())
+		key, err := s.storage.GetKey(r.Context(), s.service)
 		if err != nil {
 			log.Println(err)
 			errorWithCode(w, http.StatusInternalServerError)
 			return
 		}
 
-		if err := s.templates.Key().Execute(w, generatedKey); err != nil {
+		if err := s.templates.Key().Execute(w, key); err != nil {
 			log.Println(err)
 			errorWithCode(w, http.StatusInternalServerError)
 		}
