@@ -46,7 +46,7 @@ func NewHandler(useProxy bool) (*Server, error) {
 		for {
 			time.Sleep(1 * time.Hour) // update config every hour.
 
-			config, err := serdar.GetConfig(context.Background())
+			config, err := pastebin.GetConfig(context.Background())
 			if err != nil {
 				continue
 			}
