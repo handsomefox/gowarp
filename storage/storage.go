@@ -51,6 +51,7 @@ func (store *Storage) Fill(s *client.WarpService) {
 			log.Println("Added key to storage")
 		}
 		log.Println("Currently stored key size: ", store.stack.Len())
+		time.Sleep(s.WaitTime())
 	}
 }
 
