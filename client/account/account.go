@@ -11,13 +11,6 @@ import (
 	"github.com/handsomefox/gowarp/models"
 )
 
-// Data represents the response with CF account data, including the key.
-type Data struct {
-	Type     string      `json:"account_type"`
-	RefCount json.Number `json:"referral_count"`
-	License  string      `json:"license"`
-}
-
 // Account represents a registered CF account.
 type Account struct {
 	ID      string `json:"id"`
