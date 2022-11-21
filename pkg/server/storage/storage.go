@@ -36,7 +36,6 @@ func (store *Storage) Fill(s *warp.Service) {
 // makeKey wraps the warp.MakeKey and stores the key inside database.
 func (store *Storage) makeKey(s *warp.Service) {
 	start := time.Now()
-	defer log.Println("Generating key took: ", time.Since(start).Milliseconds(), "ms")
 
 	var wg errgroup.Group
 	var createdKey *models.Account
@@ -46,7 +45,6 @@ func (store *Storage) makeKey(s *warp.Service) {
 			return fmt.Errorf("error generating key: %w", err)
 		}
 		createdKey = key
-
 		return nil
 	})
 
@@ -54,6 +52,8 @@ func (store *Storage) makeKey(s *warp.Service) {
 		log.Println("Error when generating key: ", err)
 		return
 	}
+
+	log.Println("Generating key took: ", time.Since(start).Milliseconds(), "ms")
 
 	i, err := createdKey.RefCount.Int64()
 	if err != nil {
@@ -69,6 +69,7 @@ func (store *Storage) makeKey(s *warp.Service) {
 	if err != nil {
 		log.Println("Failed to add key to the database: ", err)
 	}
+
 	log.Println("Added key to database, id: ", id)
 }
 

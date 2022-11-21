@@ -142,7 +142,6 @@ func (s *Server) generateKey() http.HandlerFunc {
 
 		log.Println("Getting key")
 		start := time.Now()
-		defer log.Println("Getting key took: ", time.Since(start).Milliseconds(), "ms")
 
 		key, err := s.storage.GetKey(r.Context(), s.service)
 		if err != nil {
@@ -155,6 +154,7 @@ func (s *Server) generateKey() http.HandlerFunc {
 			log.Println("Failed to execute template: ", err)
 			errorWithCode(w, http.StatusInternalServerError)
 		}
+		log.Println("Getting key took: ", time.Since(start).Milliseconds(), "ms")
 	}
 }
 
