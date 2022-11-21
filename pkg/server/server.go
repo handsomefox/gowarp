@@ -67,7 +67,7 @@ func NewHandler(useProxy bool) (*Server, error) {
 
 	mux := http.NewServeMux()
 	// Setup routes
-	mux.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir("./server/resources/static"))))
+	mux.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir("./resources/static"))))
 	mux.HandleFunc("/", server.home())
 	mux.HandleFunc("/config/update", server.updateConfig())
 	mux.HandleFunc("/key/generate", server.generateKey())
