@@ -1,4 +1,4 @@
-package server
+package ratelimit
 
 import (
 	"net/http"
@@ -32,7 +32,7 @@ type RateLimiter struct {
 	requestCounter *IPRequestCount
 }
 
-func NewRateLimiter() *RateLimiter {
+func New() *RateLimiter {
 	rl := &RateLimiter{
 		requestCounter: &IPRequestCount{
 			ips: make(map[string]int, 0),
@@ -50,7 +50,7 @@ func (rl *RateLimiter) Decorate(h http.Handler) http.Handler {
 		cv := rl.requestCounter.Get(ipAddr)
 
 		if cv >= RequestLimit {
-			errorWithCode(w, http.StatusTooManyRequests)
+			http.Error(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
 			return
 		}
 		h.ServeHTTP(w, r)
