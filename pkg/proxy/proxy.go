@@ -13,7 +13,7 @@ import (
 
 var (
 	ErrNoProxies        = errors.New("no suitable proxy was found")
-	ErrRequestFailed    = errors.New("couldn't get proxie from url")
+	ErrRequestFailed    = errors.New("couldn't get proxy from url")
 	ErrUnexpectedBody   = errors.New("unexpected proxy body")
 	ErrFailedToParseURL = errors.New("failed to parse proxy URL")
 )
