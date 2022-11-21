@@ -27,7 +27,7 @@ type Account struct {
 }
 
 func NewAccount(ctx context.Context, c *client.Client) (*Account, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.BaseURL()+"/reg", http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.BaseURL+"/reg", http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("error creating a request to register account: %w", err)
 	}
@@ -52,7 +52,7 @@ func (acc *Account) AddReferrer(ctx context.Context, c *client.Client, referrer 
 		return fmt.Errorf("error marshalling account referrer: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, c.BaseURL()+"/reg/"+acc.ID, bytes.NewBuffer(payload))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, c.BaseURL+"/reg/"+acc.ID, bytes.NewBuffer(payload))
 	if err != nil {
 		return fmt.Errorf("error creating request with account referrer: %w", err)
 	}
@@ -70,7 +70,7 @@ func (acc *Account) AddReferrer(ctx context.Context, c *client.Client, referrer 
 }
 
 func (acc *Account) RemoveDevice(ctx context.Context, c *client.Client) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.BaseURL()+"/reg/"+acc.ID, http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.BaseURL+"/reg/"+acc.ID, http.NoBody)
 	if err != nil {
 		return fmt.Errorf("error creating a request to remove a device: %w", err)
 	}
@@ -93,7 +93,7 @@ func (acc *Account) ApplyKey(ctx context.Context, c *client.Client, key string) 
 		return fmt.Errorf("error marshalling account license: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, c.BaseURL()+"/reg/"+acc.ID+"/account",
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, c.BaseURL+"/reg/"+acc.ID+"/account",
 		bytes.NewBuffer(payload))
 	if err != nil {
 		return fmt.Errorf("error creating request with account key: %w", err)
@@ -112,7 +112,7 @@ func (acc *Account) ApplyKey(ctx context.Context, c *client.Client, key string) 
 }
 
 func (acc *Account) GetAccountData(ctx context.Context, c *client.Client) (*Data, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL()+"/reg/"+acc.ID+"/account", http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+"/reg/"+acc.ID+"/account", http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request to fetch account data: %w", err)
 	}

@@ -18,7 +18,7 @@ type Server struct {
 	handler   http.Handler
 	templates *TemplateStorage
 
-	client  *client.Client
+	service *client.WarpService
 	storage *storage.Storage
 }
 
@@ -32,18 +32,18 @@ func NewHandler() (*Server, error) {
 	// Create server
 	server := &Server{
 		templates: ts,
-		client:    client.NewClient(nil),
+		service:   client.NewService(nil, true),
 		storage:   storage.NewStorage(),
 	}
 
-	go server.storage.Fill(server.client)
+	go server.storage.Fill(server.service)
 	go func() {
 		for {
 			config, err := serdar.GetConfig(context.Background())
 			if err != nil {
 				time.Sleep(1 * time.Minute)
 			}
-			server.client.UpdateConfig(config)
+			server.service.UpdateConfig(config)
 
 			time.Sleep(1 * time.Hour)
 		}
@@ -93,7 +93,7 @@ func (s *Server) updateConfig() http.HandlerFunc {
 			message = "failed to update config"
 		}
 		log.Println(newConfig)
-		s.client.UpdateConfig(newConfig)
+		s.service.UpdateConfig(newConfig)
 
 		if err := s.templates.Config().Execute(w, message); err != nil {
 			log.Println(err)
@@ -109,7 +109,7 @@ func (s *Server) generateKey() http.HandlerFunc {
 			return
 		}
 
-		key, err := s.storage.GetKey(r.Context(), s.client)
+		key, err := s.storage.GetKey(r.Context(), s.service)
 		if err != nil {
 			log.Println(err)
 			errorWithCode(w, http.StatusInternalServerError)

@@ -13,59 +13,61 @@ import (
 	"github.com/handsomefox/gowarp/client/proxy"
 )
 
-// Client is the client required to make requests to work with CF's API.
+// Client is the actual client used to make requests to CF.
 type Client struct {
-	mu     sync.Mutex
-	client *http.Client
-	config *cfg.Config
-}
+	cl *http.Client
 
-// NewClient returns a *Client, if no config is specified, the DefaultConfig() is used.
-func NewClient(config *cfg.Config) *Client {
-	if config == nil {
-		config = cfg.Default()
-	}
-	return &Client{
-		client: &http.Client{
-			Transport: proxiedTransport(http.ProxyFromEnvironment),
-		},
-		config: config,
-		mu:     sync.Mutex{},
-	}
-}
-
-func (c *Client) UnuseProxy() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	c.client.Transport = proxiedTransport(http.ProxyFromEnvironment)
-}
-
-func (c *Client) UseProxy(ctx context.Context) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	px, err := proxy.Get(ctx)
-	if err != nil {
-		// use the default params
-		c.client.Transport = proxiedTransport(http.ProxyFromEnvironment)
-	} else {
-		// use proxy
-		log.Printf("Using proxy: %s", px.Addr)
-		c.client.Transport = proxiedTransport(http.ProxyURL(px.Addr))
-	}
+	ClientVersion, UserAgent, Host, BaseURL string
 }
 
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	req.Header.Set("CF-Client-Version", c.config.ClientVersion)
-	req.Header.Set("Host", c.config.Host)
-	req.Header.Set("User-Agent", c.config.UserAgent)
+	req.Header.Set("CF-Client-Version", c.ClientVersion)
+	req.Header.Set("Host", c.Host)
+	req.Header.Set("User-Agent", c.UserAgent)
 	req.Header.Set("Connection", "Keep-Alive")
-	return c.client.Do(req) // in this case we need the errors from the actual client, no need to wrap.
+	return c.cl.Do(req) // in this case we need the errors from the actual client, no need to wrap.
 }
 
-func (c *Client) UpdateConfig(newConfig *cfg.Config) {
+// WarpService is the service used to make requests to CF.
+type WarpService struct {
+	mu     sync.Mutex
+	config *cfg.Config
+
+	useProxy bool
+}
+
+func (c *WarpService) GetRequestClient(ctx context.Context) *Client {
+	transport := proxiedTransport(http.ProxyFromEnvironment)
+	if c.useProxy {
+		px, err := proxy.Get(ctx)
+		if err == nil {
+			log.Printf("Using proxy: %s", px.Addr)
+			transport = proxiedTransport(http.ProxyURL(px.Addr))
+		}
+	}
+
+	return &Client{
+		cl:            &http.Client{Transport: transport},
+		ClientVersion: c.ClientVersion(),
+		UserAgent:     c.UserAgent(),
+		Host:          c.Host(),
+		BaseURL:       c.BaseURL(),
+	}
+}
+
+// NewService returns a *Client, if no config is specified, the DefaultConfig() is used.
+func NewService(config *cfg.Config, useProxy bool) *WarpService {
+	if config == nil {
+		config = cfg.Default()
+	}
+	return &WarpService{
+		mu:       sync.Mutex{},
+		config:   config,
+		useProxy: useProxy,
+	}
+}
+
+func (c *WarpService) UpdateConfig(newConfig *cfg.Config) {
 	log.Println("Updating config")
 	log.Println(newConfig)
 	c.mu.Lock()
@@ -73,31 +75,31 @@ func (c *Client) UpdateConfig(newConfig *cfg.Config) {
 	c.mu.Unlock()
 }
 
-func (c *Client) ClientVersion() string {
+func (c *WarpService) ClientVersion() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.config.ClientVersion
 }
 
-func (c *Client) UserAgent() string {
+func (c *WarpService) UserAgent() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.config.UserAgent
 }
 
-func (c *Client) Host() string {
+func (c *WarpService) Host() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.config.ClientVersion
 }
 
-func (c *Client) BaseURL() string {
+func (c *WarpService) BaseURL() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.config.BaseURL
 }
 
-func (c *Client) Keys() []string {
+func (c *WarpService) Keys() []string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -107,7 +109,7 @@ func (c *Client) Keys() []string {
 	return dst
 }
 
-func (c *Client) WaitTime() time.Duration {
+func (c *WarpService) WaitTime() time.Duration {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

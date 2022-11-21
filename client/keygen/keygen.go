@@ -25,12 +25,11 @@ func NewCreateAccountError(reason string) CreateAccountError {
 	}
 }
 
-func MakeKey(ctx context.Context, c *client.Client) (*account.Data, error) {
+func MakeKey(ctx context.Context, s *client.WarpService) (*account.Data, error) {
 	log.Println("Started generating key")
 	start := time.Now()
 
-	c.UseProxy(ctx)
-	defer c.UnuseProxy()
+	c := s.GetRequestClient(ctx)
 
 	acc1, err := account.NewAccount(ctx, c)
 	if err != nil {
@@ -50,7 +49,7 @@ func MakeKey(ctx context.Context, c *client.Client) (*account.Data, error) {
 		return nil, NewCreateAccountError(err.Error())
 	}
 
-	keys := c.Keys()
+	keys := s.Keys()
 
 	n, err := rand.Int(rand.Reader, big.NewInt(int64(len(keys)))) // Range=[0; Length)
 	if err != nil {
