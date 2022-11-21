@@ -1,6 +1,8 @@
-package cfg
+package warp
 
-import "time"
+import (
+	"time"
+)
 
 // Config is the configuration required for the client to work.
 type Config struct {
@@ -12,7 +14,8 @@ type Config struct {
 	WaitTime      time.Duration
 }
 
-func Default() *Config {
+// DefaultConfig returns usable default configuration.
+func DefaultConfig() *Config {
 	return &Config{
 		ClientVersion: "a-6.15-2405",
 		UserAgent:     "okhttp/3.12.1",
