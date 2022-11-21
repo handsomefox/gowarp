@@ -31,9 +31,6 @@ func (store *Storage) Fill(s *client.WarpService) {
 			time.Sleep(10 * time.Second)
 			continue
 		}
-
-		time.Sleep(10 * time.Second)
-
 		var wg errgroup.Group
 		var createdKey *account.Data
 
