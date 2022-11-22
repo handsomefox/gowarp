@@ -53,7 +53,7 @@ func (store *Storage) makeKey(s *warp.Service) {
 		return
 	}
 
-	log.Println("Generating key took: ", time.Since(start).Milliseconds(), "ms")
+	log.Println("Generating key took: ", time.Since(start))
 
 	i, err := createdKey.RefCount.Int64()
 	if err != nil {

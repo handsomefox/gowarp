@@ -154,7 +154,7 @@ func (s *Server) generateKey() http.HandlerFunc {
 			log.Println("Failed to execute template: ", err)
 			errorWithCode(w, http.StatusInternalServerError)
 		}
-		log.Println("Getting key took: ", time.Since(start).Milliseconds(), "ms")
+		log.Println("Getting key took: ", time.Since(start))
 	}
 }
 
