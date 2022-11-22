@@ -7,11 +7,10 @@ import (
 	"log"
 	"time"
 
-	"golang.org/x/sync/errgroup"
-
 	"github.com/handsomefox/gowarp/pkg/models"
 	"github.com/handsomefox/gowarp/pkg/models/mongo"
 	"github.com/handsomefox/gowarp/pkg/warp"
+	"golang.org/x/sync/errgroup"
 )
 
 type Storage struct {
@@ -25,19 +24,37 @@ func (store *Storage) Fill(s *warp.Service) {
 			time.Sleep(10 * time.Second)
 			continue
 		}
-
 		store.makeKey(s)
-
 		log.Println("Currently storing: ", store.AM.Len(context.Background()), " keys")
 		time.Sleep(s.WaitTime())
 	}
+}
+
+// GetKey either returns a key that is already stored or creates a new one.
+func (store *Storage) GetKey(ctx context.Context, s *warp.Service) (*models.Account, error) {
+	item, err := store.AM.GetAny(ctx)
+	if err != nil {
+		key, err := warp.MakeKey(ctx, s)
+		if err != nil {
+			return nil, fmt.Errorf("error generating key: %w", err)
+		}
+
+		return key, nil
+	}
+
+	if err := store.AM.Delete(ctx, item.ID); err != nil {
+		log.Println("Failed to remove key from database: ", err)
+	}
+
+	log.Println("Currently storing: ", store.AM.Len(ctx), " keys")
+	return item, nil
 }
 
 // makeKey wraps the warp.MakeKey and stores the key inside database.
 func (store *Storage) makeKey(s *warp.Service) {
 	start := time.Now()
 
-	var wg errgroup.Group
+	wg := &errgroup.Group{}
 	var createdKey *models.Account
 	wg.Go(func() error {
 		key, err := warp.MakeKey(context.Background(), s)
@@ -71,22 +88,4 @@ func (store *Storage) makeKey(s *warp.Service) {
 	}
 
 	log.Println("Added key to database, id: ", id)
-}
-
-// GetKey either returns a key that is already stored or creates a new one.
-func (store *Storage) GetKey(ctx context.Context, s *warp.Service) (*models.Account, error) {
-	item, err := store.AM.GetAny(ctx)
-	if err != nil {
-		key, err := warp.MakeKey(ctx, s)
-		if err != nil {
-			return nil, fmt.Errorf("error generating key: %w", err)
-		}
-		return key, nil
-	}
-	if err := store.AM.Delete(ctx, item.ID); err != nil {
-		log.Println("Failed to remove key from database: ", err)
-	}
-
-	log.Println("Currently storing: ", store.AM.Len(ctx), " keys")
-	return item, nil
 }
