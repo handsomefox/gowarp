@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/handsomefox/gowarp/pkg/models/mongo"
@@ -24,17 +23,9 @@ type Server struct {
 }
 
 // NewServer returns a *Server with all the required setup done.
-// If mongoURI is nil, it uses the env variable MONGO_URI.
-func NewServer(useProxy bool, mongoURI *string) (*Server, error) {
-	var uri string
-	if mongoURI != nil {
-		uri = *mongoURI
-	} else {
-		uri = os.Getenv("MONGO_URI")
-	}
-
+func NewServer(useProxy bool, connStr string) (*Server, error) {
 	// Connect to database
-	db, err := mongo.NewAccountModel(context.TODO(), uri)
+	db, err := mongo.NewAccountModel(context.TODO(), connStr)
 	if err != nil {
 		panic(err) // nowhere to store keys :/
 	}
