@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/handsomefox/gowarp/pkg/models/mongo"
-	"github.com/handsomefox/gowarp/pkg/server/middleware"
 	"github.com/handsomefox/gowarp/pkg/server/storage"
 	"github.com/handsomefox/gowarp/pkg/warp"
 	"github.com/handsomefox/gowarp/pkg/warp/pastebin"
@@ -54,11 +53,12 @@ func NewServer(useProxy bool, connStr string) (*Server, error) {
 		storage:   store,
 	}
 
+	server.SetupRoutes()
+
 	// Start a goroutine to automatically update the config.
 	go func() {
 		for {
 			time.Sleep(1 * time.Hour) // update config every hour.
-
 			config, err := pastebin.GetConfig(context.Background())
 			if err != nil {
 				continue
@@ -70,85 +70,9 @@ func NewServer(useProxy bool, connStr string) (*Server, error) {
 	// Start a goroutine to generate keys in the background.
 	go server.storage.Fill(server.service)
 
-	// Setup routes
-	mux := http.NewServeMux()
-	mux.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir("./resources/static"))))
-	mux.HandleFunc("/", server.home())
-	mux.HandleFunc("/config/update", server.updateConfig())
-	mux.HandleFunc("/key/generate", server.generateKey())
-
-	// Apply ratelimiting, logging, else...
-	server.handler = middleware.Decorate(mux, middleware.RateLimiter(500, time.Hour*6), middleware.RequestTimer())
-
 	return server, nil
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.handler.ServeHTTP(w, r)
-}
-
-// home return a HandlerFunc for the home page.
-func (s *Server) home() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
-
-		if err := s.templates.Home().Execute(w, nil); err != nil {
-			log.Println("Failed to execute template: ", err)
-			errorWithCode(w, http.StatusInternalServerError)
-		}
-	}
-}
-
-// updateConfig returns a HandlerFunc for the config update address.
-func (s *Server) updateConfig() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		message := "finished config update"
-		log.Println("Updating the config")
-
-		newConfig, err := pastebin.GetConfig(r.Context())
-		if err != nil {
-			message = "failed to update config"
-			log.Println("Failed to update config: ", err)
-		}
-		s.service.UpdateConfig(newConfig)
-		log.Println("Using new config: ", newConfig)
-
-		if err := s.templates.Config().Execute(w, message); err != nil {
-			log.Println("Failed to execute template: ", err)
-			errorWithCode(w, http.StatusInternalServerError)
-		}
-	}
-}
-
-// generateKey returns a HandlerFunc for the generated key page.
-func (s *Server) generateKey() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			errorWithCode(w, http.StatusMethodNotAllowed)
-			return
-		}
-
-		log.Println("Getting key")
-		start := time.Now()
-
-		key, err := s.storage.GetKey(r.Context(), s.service)
-		if err != nil {
-			log.Println("Error when getting key: ", err)
-			errorWithCode(w, http.StatusInternalServerError)
-			return
-		}
-
-		if err := s.templates.Key().Execute(w, key); err != nil {
-			log.Println("Failed to execute template: ", err)
-			errorWithCode(w, http.StatusInternalServerError)
-		}
-		log.Println("Getting key took: ", time.Since(start))
-	}
-}
-
-func errorWithCode(w http.ResponseWriter, status int) {
-	http.Error(w, http.StatusText(status), status)
 }
