@@ -11,12 +11,7 @@ import (
 	"strings"
 )
 
-var (
-	ErrNoProxies        = errors.New("no suitable proxy was found")
-	ErrRequestFailed    = errors.New("couldn't get proxy from url")
-	ErrUnexpectedBody   = errors.New("unexpected proxy body")
-	ErrFailedToParseURL = errors.New("failed to parse proxy URL")
-)
+const apiURL = "https://public.freeproxyapi.com/api/Proxy/Medium"
 
 // Proxy matches the response from freeproxyapi.com.
 type Proxy struct {
@@ -32,19 +27,12 @@ type Proxy struct {
 	IsAlive     bool    `json:"isAlive"`
 }
 
-func (p *Proxy) toURL() (*url.URL, error) {
-	port := strconv.Itoa(p.Port)
-	addr := strings.ToLower(p.Type) + "://" + p.Host + ":" + port
-
-	URL, err := url.Parse(addr)
-	if err != nil {
-		return nil, ErrFailedToParseURL
-	}
-
-	return URL, nil
-}
-
-const apiURL = "https://public.freeproxyapi.com/api/Proxy/Medium"
+var (
+	ErrNoProxies        = errors.New("no suitable proxy was found")
+	ErrRequestFailed    = errors.New("couldn't get proxy from url")
+	ErrUnexpectedBody   = errors.New("unexpected proxy body")
+	ErrFailedToParseURL = errors.New("failed to parse proxy URL")
+)
 
 // Get returns a valid URL that can be used with http.ProxyURL(URL).
 func Get(ctx context.Context, retryCount int) (*url.URL, error) {
@@ -53,7 +41,6 @@ func Get(ctx context.Context, retryCount int) (*url.URL, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		if !isUsable(proxy) {
 			continue
 		}
@@ -67,6 +54,18 @@ func Get(ctx context.Context, retryCount int) (*url.URL, error) {
 	}
 
 	return nil, ErrNoProxies
+}
+
+func (p *Proxy) toURL() (*url.URL, error) {
+	port := strconv.Itoa(p.Port)
+	addr := strings.ToLower(p.Type) + "://" + p.Host + ":" + port
+
+	URL, err := url.Parse(addr)
+	if err != nil {
+		return nil, ErrFailedToParseURL
+	}
+
+	return URL, nil
 }
 
 func fetchProxy(ctx context.Context) (*Proxy, error) {
@@ -93,7 +92,6 @@ func isUsable(p *Proxy) bool {
 	if strings.EqualFold(p.Type, "socks4") {
 		return false
 	}
-
 	if p.AverageTime > 1500 {
 		return false
 	}
