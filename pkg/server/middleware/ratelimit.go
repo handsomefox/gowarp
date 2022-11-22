@@ -14,7 +14,7 @@ type rateLimiter struct {
 
 func newRateLimiter(requestLimit int, requestPeriod time.Duration) *rateLimiter {
 	rl := &rateLimiter{
-		requestCounter: &ipRequestCount{ips: make(map[string]int, 0)},
+		requestCounter: &ipRequestCount{ips: make(map[string]int, 0), mu: sync.Mutex{}},
 		requestPeriod:  requestPeriod,
 		requestLimit:   requestLimit,
 	}

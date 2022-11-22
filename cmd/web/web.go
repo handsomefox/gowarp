@@ -15,12 +15,12 @@ const (
 	ConnStrEnvKey  = "DB_URI"
 )
 
-var (
-	useProxy bool
-	connStr  string
-)
-
 func main() {
+	var (
+		useProxy bool
+		connStr  string
+	)
+
 	proxy, err := strconv.ParseBool(os.Getenv(UseProxyEnvKey))
 	if err != nil {
 		useProxy = false
@@ -31,7 +31,7 @@ func main() {
 	connStr = os.Getenv(ConnStrEnvKey)
 	if connStr == "" {
 		log.Fatalf(`No connection string was provided, exiting.
-To provide a connection string, specify the enviornment variable: "%s"`, ConnStrEnvKey)
+To provide a connection string, specify the environment variable: "%s"`, ConnStrEnvKey)
 	}
 
 	sh, err := server.NewServer(useProxy, connStr)
