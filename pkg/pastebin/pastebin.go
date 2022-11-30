@@ -1,4 +1,3 @@
-// package pastebin allows fetching a client config from pastebin.
 package pastebin
 
 import (
@@ -7,29 +6,18 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
-	"time"
 
-	"github.com/handsomefox/gowarp/pkg/warp"
+	"github.com/handsomefox/gowarp/pkg/client"
 )
 
 // ErrUnexpectedBody is returned if the format of fetched configuration was unexpected.
 var ErrUnexpectedBody = errors.New("unexpected response body")
 
-const pastebinURL = "https://pastebin.com/raw/pwtQLBiK"
+// GetClientConfiguration returns a new configuration from the hardcoded pastebin url.
+func GetClientConfiguration(ctx context.Context) (*client.Configuration, error) {
+	const pastebinURL = "https://pastebin.com/raw/pwtQLBiK"
 
-const (
-	cfClientVersionKey = "CfClientVersion"
-	userAgentKey       = "UserAgent"
-	hostKey            = "Host"
-	baseURLKey         = "BaseURL"
-	waitTimeKey        = "WaitTime"
-	keysKey            = "Keys"
-)
-
-// GetConfig returns a new configuration from the hardcoded pastebin url.
-func GetConfig(ctx context.Context) (*warp.Config, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, pastebinURL, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request to get config: %w", err)
@@ -41,16 +29,10 @@ func GetConfig(ctx context.Context) (*warp.Config, error) {
 	}
 	defer res.Body.Close()
 
-	config := &warp.Config{
-		ClientVersion: cfClientVersionKey,
-		UserAgent:     userAgentKey,
-		Host:          hostKey,
-		BaseURL:       baseURLKey,
-		Keys:          []string{},
-		WaitTime:      45 * time.Second,
-	}
+	config := &client.Configuration{}
 
 	scanner := bufio.NewScanner(res.Body)
+
 	for scanner.Scan() {
 		text := scanner.Text()
 		split := strings.Split(text, "=")
@@ -62,19 +44,15 @@ func GetConfig(ctx context.Context) (*warp.Config, error) {
 		key, value := split[0], split[1]
 
 		switch key {
-		case cfClientVersionKey:
-			config.ClientVersion = value
-		case userAgentKey:
+		case "CfClientVersion":
+			config.CFClientVersion = value
+		case "UserAgent":
 			config.UserAgent = value
-		case hostKey:
+		case "Host":
 			config.Host = value
-		case baseURLKey:
+		case "BaseURL":
 			config.BaseURL = value
-		case waitTimeKey:
-			if i, err := strconv.Atoi(value); err == nil {
-				config.WaitTime = time.Duration(i) * time.Second
-			}
-		case keysKey:
+		case "Keys":
 			if keys := strings.Split(value, ","); len(keys) > 0 {
 				config.Keys = keys
 			}
