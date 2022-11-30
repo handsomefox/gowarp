@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/handsomefox/gowarp/pkg/models"
+	"github.com/handsomefox/gowarp/models"
 )
 
 type Client struct {
