@@ -1,0 +1,7 @@
+{{template "base" .}} {{define "title"}}Error{{end}} {{define "body"}}
+<center>
+  <h1>Unexpected error happened!</h1>
+  <p>Error: {{.Err}}</p>
+  <p>Status: {{.Status}}</p>
+</center>
+{{end}}

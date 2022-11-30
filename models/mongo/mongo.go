@@ -2,9 +2,8 @@ package mongo
 
 import (
 	"context"
-	"log"
 
-	"github.com/handsomefox/gowarp/pkg/models"
+	"github.com/handsomefox/gowarp/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -19,13 +18,11 @@ func NewAccountModel(ctx context.Context, uri string) (*AccountModel, error) {
 	clientOptions := options.Client().ApplyURI(uri)
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
-		log.Println("Failed to connect to the database: ", err)
 		return nil, models.ErrConnectionFailed
 	}
 
 	err = client.Ping(ctx, nil)
 	if err != nil {
-		log.Println("Failed to ping the database: ", err)
 		return nil, models.ErrPingFailed
 	}
 	collection := client.Database("gowarp").Collection("keys")
@@ -36,7 +33,6 @@ func NewAccountModel(ctx context.Context, uri string) (*AccountModel, error) {
 func (am *AccountModel) Insert(ctx context.Context, acc *models.Account) (id any, err error) {
 	res, err := am.collection.InsertOne(ctx, acc)
 	if err != nil {
-		log.Println("Failed to insert item: ", acc, ", err: ", err)
 		return nil, models.ErrInsertFailed
 	}
 
@@ -47,7 +43,6 @@ func (am *AccountModel) GetAny(ctx context.Context) (*models.Account, error) {
 	acc := &models.Account{}
 	res := am.collection.FindOne(ctx, bson.D{{}})
 	if err := res.Decode(acc); err != nil {
-		log.Println("Failed to get an item: ", err)
 		return nil, models.ErrNoRecord
 	}
 
@@ -57,7 +52,6 @@ func (am *AccountModel) GetAny(ctx context.Context) (*models.Account, error) {
 func (am *AccountModel) Delete(ctx context.Context, id any) error {
 	_, err := am.collection.DeleteOne(ctx, bson.D{primitive.E{Key: "_id", Value: id}})
 	if err != nil {
-		log.Println("Failed to delete an item: ", err)
 		return models.ErrDeleteFailed
 	}
 

@@ -1,4 +1,4 @@
-package middleware
+package main
 
 import (
 	"net/http"
@@ -6,13 +6,7 @@ import (
 	"time"
 )
 
-type rateLimiter struct {
-	requestCounter *ipRequestCount
-	requestPeriod  time.Duration
-	requestLimit   int
-}
-
-func newRateLimiter(requestLimit int, requestPeriod time.Duration) *rateLimiter {
+func RateLimiter(h http.Handler, requestLimit int, requestPeriod time.Duration) http.HandlerFunc {
 	rl := &rateLimiter{
 		requestCounter: &ipRequestCount{ips: make(map[string]int, 0), mu: sync.Mutex{}},
 		requestPeriod:  requestPeriod,
@@ -20,7 +14,23 @@ func newRateLimiter(requestLimit int, requestPeriod time.Duration) *rateLimiter 
 	}
 	go rl.clear()
 
-	return rl
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ipAddr := readUserIP(r)
+		rl.requestCounter.increment(ipAddr)
+		cv := rl.requestCounter.get(ipAddr)
+
+		if cv >= rl.requestLimit {
+			http.Error(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
+			return
+		}
+		h.ServeHTTP(w, r)
+	})
+}
+
+type rateLimiter struct {
+	requestCounter *ipRequestCount
+	requestPeriod  time.Duration
+	requestLimit   int
 }
 
 func (rl *rateLimiter) clear() {
@@ -33,8 +43,8 @@ func (rl *rateLimiter) clear() {
 }
 
 type ipRequestCount struct {
-	ips map[string]int
 	mu  sync.Mutex
+	ips map[string]int
 }
 
 func (sc *ipRequestCount) increment(key string) {
