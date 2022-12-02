@@ -19,7 +19,7 @@ func main() {
 		port = "8080"
 	}
 
-	server, err := NewServer(port, connStr, log.Default())
+	server, err := NewServer(":"+port, connStr, log.Default())
 	if err != nil {
 		log.Fatal(err)
 	}

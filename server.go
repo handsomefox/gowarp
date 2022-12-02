@@ -16,16 +16,18 @@ import (
 )
 
 type Server struct {
-	mu sync.RWMutex
 	http.Handler
 	*mongo.AccountModel
 	*log.Logger
+
+	mu     sync.RWMutex
 	config *client.Configuration
-	port   string
+
+	addr string
 }
 
 // NewServer returns a *Server with all the required setup done.
-func NewServer(port, connStr string, logger *log.Logger) (*Server, error) {
+func NewServer(addr, connStr string, logger *log.Logger) (*Server, error) {
 	db, err := mongo.NewAccountModel(context.TODO(), connStr)
 	if err != nil {
 		return nil, ErrConnStr
@@ -41,7 +43,7 @@ func NewServer(port, connStr string, logger *log.Logger) (*Server, error) {
 		AccountModel: db,
 		Logger:       logger,
 		config:       config,
-		port:         port,
+		addr:         addr,
 	}
 
 	server.initRoutes()
@@ -171,7 +173,7 @@ func (s *Server) newKeyToDB() {
 
 func (s *Server) ListenAndServe() error {
 	srv := &http.Server{
-		Addr:              ":" + s.port,
+		Addr:              s.addr,
 		Handler:           s,
 		ReadTimeout:       1 * time.Minute,
 		WriteTimeout:      1 * time.Minute,
