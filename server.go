@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/handsomefox/gowarp/client"
@@ -19,31 +18,30 @@ type Server struct {
 	http.Handler
 	*mongo.AccountModel
 	*log.Logger
-
-	mu     sync.RWMutex
-	config *client.Configuration
-
-	addr string
+	c          *client.Configuration
+	listenAddr string
 }
 
 // NewServer returns a *Server with all the required setup done.
-func NewServer(addr, connStr string, logger *log.Logger) (*Server, error) {
-	db, err := mongo.NewAccountModel(context.TODO(), connStr)
+func NewServer(ctx context.Context, addr, connStr string, logger *log.Logger) (*Server, error) {
+	db, err := mongo.NewAccountModel(ctx, connStr)
 	if err != nil {
 		return nil, ErrConnStr
 	}
 
-	config, err := GetClientConfiguration(context.Background())
+	config, err := GetClientConfiguration(ctx)
 	if err != nil {
 		return nil, ErrFetchingConfiguration
 	}
 
+	c := client.NewConfiguration()
+	c.Update(config)
+
 	server := &Server{
-		mu:           sync.RWMutex{},
 		AccountModel: db,
 		Logger:       logger,
-		config:       config,
-		addr:         addr,
+		c:            c,
+		listenAddr:   addr,
 	}
 
 	server.initRoutes()
@@ -52,7 +50,7 @@ func NewServer(addr, connStr string, logger *log.Logger) (*Server, error) {
 	go func(s *Server) {
 		for {
 			time.Sleep(1 * time.Hour) // update config every hour.
-			if err := server.UpdateConfiguration(context.TODO()); err != nil {
+			if err := server.UpdateConfiguration(ctx); err != nil {
 				s.Println(err)
 			}
 		}
@@ -81,9 +79,7 @@ func (s *Server) UpdateConfiguration(ctx context.Context) error {
 		return ErrFetchingConfiguration
 	}
 
-	s.mu.Lock()
-	s.config = config
-	s.mu.Unlock()
+	s.c.Update(config)
 
 	return nil
 }
@@ -107,11 +103,7 @@ func (s *Server) Fill() {
 func (s *Server) GetKey(ctx context.Context) (*models.Account, error) {
 	item, err := s.GetAny(ctx)
 	if err != nil {
-		s.mu.RLock()
-		defer s.mu.RUnlock()
-
-		c := client.NewClient(s.config, s.Logger)
-
+		c := client.NewClient(s.c, s.Logger)
 		key, err := c.NewAccountWithLicense(ctx)
 		if err != nil {
 			s.Println(err)
@@ -134,12 +126,8 @@ func (s *Server) newKeyToDB() {
 	errg := &errgroup.Group{}
 	var createdKey *models.Account
 
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
 	errg.Go(func() error {
-		c := client.NewClient(s.config, s.Logger)
-
+		c := client.NewClient(s.c, s.Logger)
 		key, err := c.NewAccountWithLicense(context.Background())
 		if err != nil {
 			return ErrGetKey
@@ -173,7 +161,7 @@ func (s *Server) newKeyToDB() {
 
 func (s *Server) ListenAndServe() error {
 	srv := &http.Server{
-		Addr:              s.addr,
+		Addr:              s.listenAddr,
 		Handler:           s,
 		ReadTimeout:       1 * time.Minute,
 		WriteTimeout:      1 * time.Minute,
@@ -184,7 +172,7 @@ func (s *Server) ListenAndServe() error {
 }
 
 // GetClientConfiguration returns a new configuration from the hardcoded pastebin url.
-func GetClientConfiguration(ctx context.Context) (*client.Configuration, error) {
+func GetClientConfiguration(ctx context.Context) (*client.ConfigurationData, error) {
 	const pastebinURL = "https://pastebin.com/raw/pwtQLBiK"
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, pastebinURL, http.NoBody)
@@ -198,7 +186,7 @@ func GetClientConfiguration(ctx context.Context) (*client.Configuration, error) 
 	}
 	defer res.Body.Close()
 
-	config := &client.Configuration{}
+	config := &client.ConfigurationData{}
 
 	scanner := bufio.NewScanner(res.Body)
 
