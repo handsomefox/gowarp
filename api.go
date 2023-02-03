@@ -2,36 +2,11 @@ package main
 
 import (
 	"errors"
-	"html/template"
 	"net/http"
 	"time"
 )
 
 type apiFunc func(w http.ResponseWriter, r *http.Request) error
-
-var homeTmpl = template.Must(template.ParseFiles(
-	"./resources/html/home.page.tmpl.html",
-	"./resources/html/base.layout.tmpl.html",
-	"./resources/html/footer.partial.tmpl.html",
-))
-
-var errTmpl = template.Must(template.ParseFiles(
-	"./resources/html/err.page.tmpl.html",
-	"./resources/html/base.layout.tmpl.html",
-	"./resources/html/footer.partial.tmpl.html",
-))
-
-var configTmpl = template.Must(template.ParseFiles(
-	"./resources/html/config.page.tmpl.html",
-	"./resources/html/base.layout.tmpl.html",
-	"./resources/html/footer.partial.tmpl.html",
-))
-
-var keyTmpl = template.Must(template.ParseFiles(
-	"./resources/html/key.page.tmpl.html",
-	"./resources/html/base.layout.tmpl.html",
-	"./resources/html/footer.partial.tmpl.html",
-))
 
 func (s *Server) makeHTTPHandler(f apiFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +38,7 @@ func (s *Server) GetHomePage() http.HandlerFunc {
 			return ErrMethodNotAllowed
 		}
 
-		if err := homeTmpl.Execute(w, nil); err != nil {
+		if err := HomeTemplate.Execute(w, nil); err != nil {
 			s.Println("Failed to execute template: ", err)
 			return ErrExecTmpl
 		}
@@ -86,7 +61,7 @@ func (s *Server) GetUpdateConfigPage() http.HandlerFunc {
 			s.Println("Failed to update config: ", err)
 		}
 
-		if err := configTmpl.Execute(w, message); err != nil {
+		if err := ConfigTemplate.Execute(w, message); err != nil {
 			s.Println("Failed to execute template: ", err)
 			return ErrExecTmpl
 		}
@@ -107,7 +82,7 @@ func (s *Server) GetGeneratedKey() http.HandlerFunc {
 			return ErrGetKey
 		}
 
-		if err := keyTmpl.Execute(w, key); err != nil {
+		if err := KeyTemplate.Execute(w, key); err != nil {
 			s.Println("Failed to execute template: ", err)
 			return ErrExecTmpl
 		}
@@ -118,7 +93,7 @@ func (s *Server) GetGeneratedKey() http.HandlerFunc {
 
 func (s *Server) writeError(w http.ResponseWriter, e *apiError) error {
 	w.WriteHeader(e.Status)
-	if err := errTmpl.Execute(w, e); err != nil {
+	if err := ErrorTemplate.Execute(w, e); err != nil {
 		s.Println("Failed to execute template: ", err)
 		return ErrExecTmpl
 	}
