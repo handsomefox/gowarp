@@ -9,28 +9,25 @@ import (
 	"log"
 	"math/big"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/handsomefox/gowarp/models"
 )
 
 type Client struct {
-	cl *http.Client
-
+	cl          *http.Client
+	config      *Configuration
 	*log.Logger // used to log the errors and metrics.
-
-	mu sync.RWMutex
-	*Configuration
 }
 
 func NewClient(config *Configuration, logger *log.Logger) *Client {
 	if config == nil {
-		config = DefaultConfiguration()
+		config = NewConfiguration()
 	}
-
+	if logger == nil {
+		logger = log.Default()
+	}
 	return &Client{
-		mu: sync.RWMutex{},
 		cl: &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
@@ -45,42 +42,33 @@ func NewClient(config *Configuration, logger *log.Logger) *Client {
 				ExpectContinueTimeout: 1 * time.Second,
 			},
 		},
-		Logger:        logger,
-		Configuration: config,
+		Logger: logger,
+		config: config,
 	}
 }
 
-func (c *Client) UpdateConfig(config *Configuration) {
+func (c *Client) UpdateConfig(config *ConfigurationData) {
 	if config == nil {
 		return
 	}
-	c.mu.Lock()
-	c.Configuration = config
-	c.Println("Updated the config to: ", c.Configuration)
-	c.mu.Unlock()
+	c.config.Update(config)
+	c.Println("Updated the config")
 }
 
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
-	req.Header.Set("CF-Client-Version", c.CFClientVersion)
-	req.Header.Set("Host", c.Host)
-	req.Header.Set("User-Agent", c.UserAgent)
+	req.Header.Set("CF-Client-Version", c.config.CFClientVersion())
+	req.Header.Set("Host", c.config.Host())
+	req.Header.Set("User-Agent", c.config.UserAgent())
 	req.Header.Set("Connection", "Keep-Alive")
-
 	return c.cl.Do(req)
 }
 
 func (c *Client) NewAccount(ctx context.Context) (*Account, error) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
 	defer func(start time.Time, logger *log.Logger) {
 		logger.Println("NewAccount() took: ", time.Since(start))
 	}(time.Now(), c.Logger)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.BaseURL+"/reg", http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.config.BaseURL()+"/reg", http.NoBody)
 	if err != nil {
 		c.Println(err)
 		return nil, ErrRegAccount
@@ -103,9 +91,6 @@ func (c *Client) NewAccount(ctx context.Context) (*Account, error) {
 }
 
 func (c *Client) AddReferrer(ctx context.Context, acc, referrer *Account) error {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
 	defer func(start time.Time, logger *log.Logger) {
 		logger.Println("AddReferrer() took: ", time.Since(start))
 	}(time.Now(), c.Logger)
@@ -116,7 +101,7 @@ func (c *Client) AddReferrer(ctx context.Context, acc, referrer *Account) error 
 		return ErrEncodeAccount
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, c.BaseURL+"/reg/"+acc.ID, bytes.NewBuffer(payload))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, c.config.BaseURL()+"/reg/"+acc.ID, bytes.NewBuffer(payload))
 	if err != nil {
 		c.Println(err)
 		return ErrUpdateAccount
@@ -136,14 +121,11 @@ func (c *Client) AddReferrer(ctx context.Context, acc, referrer *Account) error 
 }
 
 func (c *Client) RemoveDevice(ctx context.Context, acc *Account) error {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
 	defer func(start time.Time, logger *log.Logger) {
 		logger.Println("RemoveDevice() took: ", time.Since(start))
 	}(time.Now(), c.Logger)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.BaseURL+"/reg/"+acc.ID, http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.config.BaseURL()+"/reg/"+acc.ID, http.NoBody)
 	if err != nil {
 		c.Println(err)
 		return ErrUpdateAccount
@@ -163,9 +145,6 @@ func (c *Client) RemoveDevice(ctx context.Context, acc *Account) error {
 }
 
 func (c *Client) ApplyKey(ctx context.Context, acc *Account, key string) error {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
 	defer func(start time.Time, logger *log.Logger) {
 		logger.Println("ApplyKey() took: ", time.Since(start))
 	}(time.Now(), c.Logger)
@@ -177,7 +156,7 @@ func (c *Client) ApplyKey(ctx context.Context, acc *Account, key string) error {
 	}
 
 	req, err := http.NewRequestWithContext(
-		ctx, http.MethodPut, c.BaseURL+"/reg/"+acc.ID+"/account", bytes.NewBuffer(payload))
+		ctx, http.MethodPut, c.config.BaseURL()+"/reg/"+acc.ID+"/account", bytes.NewBuffer(payload))
 	if err != nil {
 		c.Println(err)
 		return ErrUpdateAccount
@@ -197,14 +176,11 @@ func (c *Client) ApplyKey(ctx context.Context, acc *Account, key string) error {
 }
 
 func (c *Client) GetAccountData(ctx context.Context, acc *Account) (*models.Account, error) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
 	defer func(start time.Time, logger *log.Logger) {
 		logger.Println("GetAccountData() took: ", time.Since(start))
 	}(time.Now(), c.Logger)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+"/reg/"+acc.ID+"/account", http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.config.BaseURL()+"/reg/"+acc.ID+"/account", http.NoBody)
 	if err != nil {
 		c.Println(err)
 		return nil, ErrGetAccountData
@@ -230,9 +206,6 @@ func (c *Client) GetAccountData(ctx context.Context, acc *Account) (*models.Acco
 
 // NewAccountWithLicense creates models.Account with random license.
 func (c *Client) NewAccountWithLicense(ctx context.Context) (*models.Account, error) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
 	defer func(start time.Time, logger *log.Logger) {
 		logger.Println("NewAccountWithLicense() took: ", time.Since(start))
 	}(time.Now(), c.Logger)
@@ -255,12 +228,12 @@ func (c *Client) NewAccountWithLicense(ctx context.Context) (*models.Account, er
 		return nil, err
 	}
 
-	n, err := rand.Int(rand.Reader, big.NewInt(int64(len(c.Keys)))) // [0; Length)
+	n, err := rand.Int(rand.Reader, big.NewInt(int64(len(c.config.Keys())))) // [0; Length)
 	if err != nil {
 		n = big.NewInt(0)
 	}
 
-	key := c.Keys[n.Int64()]
+	key := c.config.Keys()[n.Int64()]
 	if err := c.ApplyKey(ctx, keyAccount, key); err != nil {
 		return nil, err
 	}
