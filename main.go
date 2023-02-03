@@ -1,30 +1,42 @@
 package main
 
 import (
+	"context"
 	"log"
-	"os"
+
+	"github.com/sethvargo/go-envconfig"
 )
+
+type AppConfiguration struct {
+	DatabaseURI string `env:"DB_URI"`
+	Port        string `env:"PORT"`
+}
 
 func main() {
 	var (
-		connStr = os.Getenv("DB_URI")
-		port    = os.Getenv("PORT")
+		ctx    = context.Background()
+		logger = log.Default()
 	)
 
-	if connStr == "" {
-		log.Fatal("no connection string provided")
-	}
-	if port == "" {
-		log.Println("no port specified, falling back to 8080")
-		port = "8080"
+	var c AppConfiguration
+	if err := envconfig.Process(ctx, &c); err != nil {
+		log.Fatal(err)
 	}
 
-	server, err := NewServer(":"+port, connStr, log.Default())
+	if c.DatabaseURI == "" {
+		logger.Fatal("no connection string provided")
+	}
+	if c.Port == "" {
+		logger.Println("no port specified, falling back to 8080")
+		c.Port = "8080"
+	}
+
+	s, err := NewServer(ctx, ":"+c.Port, c.DatabaseURI, logger)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 
-	if err := server.ListenAndServe(); err != nil {
-		log.Fatal(err)
+	if err := s.ListenAndServe(); err != nil {
+		logger.Fatal(err)
 	}
 }
