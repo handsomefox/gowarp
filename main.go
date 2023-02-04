@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/handsomefox/gowarp/server"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/sethvargo/go-envconfig"
 )
@@ -15,6 +16,8 @@ type AppConfiguration struct {
 
 func main() {
 	ctx := context.Background()
+
+	log.Level(zerolog.TraceLevel)
 
 	var c AppConfiguration
 	if err := envconfig.Process(ctx, &c); err != nil {
