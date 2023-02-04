@@ -7,6 +7,17 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+type APIError struct {
+	Err    string
+	Status int
+}
+
+func (e *APIError) Error() string {
+	return e.Err
+}
+
+var ErrExecTmpl = &APIError{Err: "failed to exec tmpl", Status: http.StatusInternalServerError}
+
 func (s *Server) HandleHomePage() http.HandlerFunc {
 	return s.WrapHandlerFuncErr(func(w http.ResponseWriter, _ *http.Request) error {
 		if err := s.templates[HomeID].Execute(w, nil); err != nil {
@@ -20,15 +31,14 @@ func (s *Server) HandleHomePage() http.HandlerFunc {
 func (s *Server) HandleUpdateConfig() http.HandlerFunc {
 	return s.WrapHandlerFuncErr(func(w http.ResponseWriter, r *http.Request) error {
 		ctx := r.Context()
-		message := "finished config update"
-		log.Info().Msg("started config update")
 
+		log.Info().Msg("started config update")
 		if err := s.UpdateConfiguration(ctx); err != nil {
-			message = "failed to update config"
-			log.Err(err).Msg("failed to update the config")
+			log.Err(err).Msg("failed to update config")
+			return err
 		}
 
-		if err := s.templates[ConfigID].Execute(w, message); err != nil {
+		if err := s.templates[ConfigID].Execute(w, "finished config update"); err != nil {
 			log.Err(err).Msg("failed to exec template")
 			return ErrExecTmpl
 		}

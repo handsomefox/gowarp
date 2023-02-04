@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"errors"
 	"html/template"
 	"net/http"
 	"strings"
@@ -18,12 +19,20 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+var (
+	ErrGetKey                = errors.New("server: failed to get the key")
+	ErrConnStr               = errors.New("server: invalid connection string")
+	ErrFetchingConfiguration = errors.New("server: error fetching configuration")
+	ErrCreateKey             = errors.New("server: failed to create a key on the fly")
+	ErrUnexpectedBody        = errors.New("server: unexpected configuration response body")
+)
+
 type Server struct {
 	http.Handler
 	*mongo.AccountModel
 	c          *client.Configuration
-	listenAddr string
 	templates  map[TemplateID]*template.Template
+	listenAddr string
 }
 
 // NewServer returns a *Server with all the required setup done.
@@ -61,9 +70,21 @@ func NewServer(ctx context.Context, addr, connStr string, templates map[Template
 	}(server)
 
 	// Start a goroutine to generate keys in the background.
-	go server.Fill()
+	go server.Fill(200, 20*time.Minute)
 
 	return server, nil
+}
+
+func (s *Server) ListenAndServe() error {
+	srv := &http.Server{
+		Addr:              s.listenAddr,
+		Handler:           s,
+		ReadTimeout:       1 * time.Minute,
+		WriteTimeout:      1 * time.Minute,
+		ReadHeaderTimeout: 1 * time.Minute,
+	}
+
+	return srv.ListenAndServe()
 }
 
 func (s *Server) initRoutes() {
@@ -86,22 +107,18 @@ func (s *Server) UpdateConfiguration(ctx context.Context) error {
 	if err != nil {
 		return ErrFetchingConfiguration
 	}
-
 	s.c.Update(config)
-
 	return nil
 }
 
-// Fill fills (forever) the internal storage with correctly generated keys.
-func (s *Server) Fill() {
+// Fill fills the db to the maxCount
+func (s *Server) Fill(maxCount int64, sleepDuration time.Duration) {
+	ctx := context.Background()
 	for {
-		ctx := context.Background()
-		if s.Len(ctx) > 250 {
-			time.Sleep(10 * time.Second)
-			continue
+		if s.Len(ctx) >= maxCount {
+			time.Sleep(sleepDuration)
 		}
-
-		s.newKeyToDB()
+		s.pushNewKeyToDatabase()
 		log.Info().Int64("current_key_count", s.Len(ctx))
 		time.Sleep(30 * time.Second)
 	}
@@ -129,8 +146,8 @@ func (s *Server) GetKey(ctx context.Context) (*models.Account, error) {
 	return item, nil
 }
 
-// newKeyToDB wraps the client.NewAccountWithLicense and stores the key inside database.
-func (s *Server) newKeyToDB() {
+// pushNewKeyToDatabase wraps the client.NewAccountWithLicense and stores the key inside database.
+func (s *Server) pushNewKeyToDatabase() {
 	var (
 		errg       = new(errgroup.Group)
 		ctx        = context.Background()
@@ -167,18 +184,6 @@ func (s *Server) newKeyToDB() {
 	}
 
 	log.Info().Any("id", id).Msg("added key to the database")
-}
-
-func (s *Server) ListenAndServe() error {
-	srv := &http.Server{
-		Addr:              s.listenAddr,
-		Handler:           s,
-		ReadTimeout:       1 * time.Minute,
-		WriteTimeout:      1 * time.Minute,
-		ReadHeaderTimeout: 1 * time.Minute,
-	}
-
-	return srv.ListenAndServe()
 }
 
 // GetClientConfiguration returns a new configuration from the hardcoded pastebin url.
