@@ -28,7 +28,12 @@ func main() {
 		c.Port = "8080"
 	}
 
-	s, err := NewServer(ctx, ":"+c.Port, c.DatabaseURI)
+	tmpl, err := LoadTemplates()
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to load templates")
+	}
+
+	s, err := NewServer(ctx, ":"+c.Port, c.DatabaseURI, tmpl)
 	if err != nil {
 		log.Fatal().Err(err).Send()
 	}

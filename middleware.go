@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func RateLimiter(h http.Handler, requestLimit int, requestPeriod time.Duration) http.HandlerFunc {
+func RateLimit(h http.Handler, requestLimit int, requestPeriod time.Duration) http.HandlerFunc {
 	rl := &rateLimiter{
 		requestCounter: &ipRequestCount{ips: make(map[string]int, 0), mu: sync.Mutex{}},
 		requestPeriod:  requestPeriod,

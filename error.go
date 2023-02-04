@@ -5,19 +5,18 @@ import (
 	"net/http"
 )
 
-type apiError struct {
+type APIError struct {
 	Err    string
 	Status int
 }
 
-func (e *apiError) Error() string {
+func (e *APIError) Error() string {
 	return e.Err
 }
 
 var (
-	ErrExecTmpl         = &apiError{Err: "failed to exec tmpl", Status: http.StatusInternalServerError}
-	ErrMethodNotAllowed = &apiError{Err: "method not allowed", Status: http.StatusMethodNotAllowed}
-
+	ErrExecTmpl              = &APIError{Err: "failed to exec tmpl", Status: http.StatusInternalServerError}
+	ErrMethodNotAllowed      = &APIError{Err: "method not allowed", Status: http.StatusMethodNotAllowed}
 	ErrGetKey                = errors.New("server: failed to get the key")
 	ErrConnStr               = errors.New("server: invalid connection string")
 	ErrFetchingConfiguration = errors.New("server: error fetching configuration")

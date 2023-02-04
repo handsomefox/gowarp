@@ -3,9 +3,13 @@ package main
 import (
 	"bufio"
 	"context"
+	"html/template"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5"
 
 	"github.com/handsomefox/gowarp/client"
 	"github.com/handsomefox/gowarp/models"
@@ -19,10 +23,11 @@ type Server struct {
 	*mongo.AccountModel
 	c          *client.Configuration
 	listenAddr string
+	templates  map[TemplateID]*template.Template
 }
 
 // NewServer returns a *Server with all the required setup done.
-func NewServer(ctx context.Context, addr, connStr string) (*Server, error) {
+func NewServer(ctx context.Context, addr, connStr string, templates map[TemplateID]*template.Template) (*Server, error) {
 	db, err := mongo.NewAccountModel(ctx, connStr)
 	if err != nil {
 		return nil, ErrConnStr
@@ -40,6 +45,7 @@ func NewServer(ctx context.Context, addr, connStr string) (*Server, error) {
 		AccountModel: db,
 		c:            c,
 		listenAddr:   addr,
+		templates:    templates,
 	}
 
 	server.initRoutes()
@@ -48,7 +54,7 @@ func NewServer(ctx context.Context, addr, connStr string) (*Server, error) {
 	go func(s *Server) {
 		for {
 			time.Sleep(1 * time.Hour) // update config every hour.
-			if err := server.UpdateConfiguration(ctx); err != nil {
+			if err := s.UpdateConfiguration(ctx); err != nil {
 				log.Err(err).Send()
 			}
 		}
@@ -61,14 +67,18 @@ func NewServer(ctx context.Context, addr, connStr string) (*Server, error) {
 }
 
 func (s *Server) initRoutes() {
-	mux := http.NewServeMux()
+	r := chi.NewRouter()
 
-	mux.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir("./resources/static"))))
-	mux.HandleFunc("/", s.GetHomePage())
-	mux.HandleFunc("/config/update", s.GetUpdateConfigPage())
-	mux.HandleFunc("/key/generate", RateLimiter(s.GetGeneratedKey(), 20, 1*time.Hour))
+	r.Use(middleware.Heartbeat("/ping"))
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.Logger)
 
-	s.Handler = mux
+	r.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir("./resources/static"))))
+	r.Get("/", s.HandleHomePage())
+	r.Get("/config/update", s.HandleUpdateConfig())
+	r.HandleFunc("/key/generate", RateLimit(s.HandleGenerateKey(), 20, 1*time.Hour))
+
+	s.Handler = r
 }
 
 func (s *Server) UpdateConfiguration(ctx context.Context) error {
