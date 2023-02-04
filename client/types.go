@@ -8,4 +8,3 @@ type Account struct {
 	} `json:"account"`
 	Token string `json:"token"`
 }
-
