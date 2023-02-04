@@ -94,7 +94,7 @@ func (s *Server) initRoutes() {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Logger)
 
-	r.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir("./resources/static"))))
+	r.Handle("/static/*", http.StripPrefix("/static", http.FileServer(http.Dir("./resources/static"))))
 	r.Get("/", s.HandleHomePage())
 	r.Get("/config/update", s.HandleUpdateConfig())
 	r.HandleFunc("/key/generate", RateLimit(s.HandleGenerateKey(), 20, 1*time.Hour))
