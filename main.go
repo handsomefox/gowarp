@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"log"
 
+	"github.com/rs/zerolog/log"
 	"github.com/sethvargo/go-envconfig"
 )
 
@@ -13,30 +13,27 @@ type AppConfiguration struct {
 }
 
 func main() {
-	var (
-		ctx    = context.Background()
-		logger = log.Default()
-	)
+	ctx := context.Background()
 
 	var c AppConfiguration
 	if err := envconfig.Process(ctx, &c); err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Send()
 	}
 
 	if c.DatabaseURI == "" {
-		logger.Fatal("no connection string provided")
+		log.Fatal().Msg("no connection string provided")
 	}
 	if c.Port == "" {
-		logger.Println("no port specified, falling back to 8080")
+		log.Info().Msg("no port specified, using fallback (8080)")
 		c.Port = "8080"
 	}
 
-	s, err := NewServer(ctx, ":"+c.Port, c.DatabaseURI, logger)
+	s, err := NewServer(ctx, ":"+c.Port, c.DatabaseURI)
 	if err != nil {
-		logger.Fatal(err)
+		log.Fatal().Err(err).Send()
 	}
 
 	if err := s.ListenAndServe(); err != nil {
-		logger.Fatal(err)
+		log.Fatal().Err(err).Send()
 	}
 }

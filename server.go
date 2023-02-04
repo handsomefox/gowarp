@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"context"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -11,19 +10,19 @@ import (
 	"github.com/handsomefox/gowarp/client"
 	"github.com/handsomefox/gowarp/models"
 	"github.com/handsomefox/gowarp/models/mongo"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 )
 
 type Server struct {
 	http.Handler
 	*mongo.AccountModel
-	*log.Logger
 	c          *client.Configuration
 	listenAddr string
 }
 
 // NewServer returns a *Server with all the required setup done.
-func NewServer(ctx context.Context, addr, connStr string, logger *log.Logger) (*Server, error) {
+func NewServer(ctx context.Context, addr, connStr string) (*Server, error) {
 	db, err := mongo.NewAccountModel(ctx, connStr)
 	if err != nil {
 		return nil, ErrConnStr
@@ -39,7 +38,6 @@ func NewServer(ctx context.Context, addr, connStr string, logger *log.Logger) (*
 
 	server := &Server{
 		AccountModel: db,
-		Logger:       logger,
 		c:            c,
 		listenAddr:   addr,
 	}
@@ -51,7 +49,7 @@ func NewServer(ctx context.Context, addr, connStr string, logger *log.Logger) (*
 		for {
 			time.Sleep(1 * time.Hour) // update config every hour.
 			if err := server.UpdateConfiguration(ctx); err != nil {
-				s.Println(err)
+				log.Err(err).Send()
 			}
 		}
 	}(server)
@@ -87,14 +85,14 @@ func (s *Server) UpdateConfiguration(ctx context.Context) error {
 // Fill fills (forever) the internal storage with correctly generated keys.
 func (s *Server) Fill() {
 	for {
-		if s.Len(context.TODO()) > 250 {
+		ctx := context.Background()
+		if s.Len(ctx) > 250 {
 			time.Sleep(10 * time.Second)
 			continue
 		}
 
 		s.newKeyToDB()
-		s.Println("Currently storing: ", s.Len(context.TODO()), " keys")
-
+		log.Info().Int64("current_key_count", s.Len(ctx))
 		time.Sleep(30 * time.Second)
 	}
 }
@@ -103,10 +101,10 @@ func (s *Server) Fill() {
 func (s *Server) GetKey(ctx context.Context) (*models.Account, error) {
 	item, err := s.GetAny(ctx)
 	if err != nil {
-		c := client.NewClient(s.c, s.Logger)
+		c := client.NewClient(s.c)
 		key, err := c.NewAccountWithLicense(ctx)
 		if err != nil {
-			s.Println(err)
+			log.Err(err).Send()
 			return nil, ErrCreateKey
 		}
 
@@ -114,21 +112,23 @@ func (s *Server) GetKey(ctx context.Context) (*models.Account, error) {
 	}
 
 	if err := s.Delete(ctx, item.ID); err != nil {
-		s.Println("Failed to remove key from database: ", err)
+		log.Err(err).Msg("failed to remove key from the database")
 	}
 
-	s.Println("Currently storing: ", s.Len(ctx), " keys")
+	log.Info().Int64("current_key_count", s.Len(ctx))
 	return item, nil
 }
 
 // newKeyToDB wraps the client.NewAccountWithLicense and stores the key inside database.
 func (s *Server) newKeyToDB() {
-	errg := &errgroup.Group{}
-	var createdKey *models.Account
-
+	var (
+		errg       = new(errgroup.Group)
+		ctx        = context.Background()
+		createdKey *models.Account
+	)
 	errg.Go(func() error {
-		c := client.NewClient(s.c, s.Logger)
-		key, err := c.NewAccountWithLicense(context.Background())
+		c := client.NewClient(s.c)
+		key, err := c.NewAccountWithLicense(ctx)
 		if err != nil {
 			return ErrGetKey
 		}
@@ -137,26 +137,26 @@ func (s *Server) newKeyToDB() {
 	})
 
 	if err := errg.Wait(); err != nil {
-		s.Println(err)
+		log.Err(err).Send()
 		return
 	}
 
 	i, err := createdKey.RefCount.Int64()
 	if err != nil {
-		s.Println("couldn't get generated key size: ", err)
+		log.Err(err).Msg("couldn't get generated key size")
 		return
 	}
 	if i < 1000 {
-		s.Println("generated key was too small to use: ", i)
+		log.Error().Int64("key_size", i).Msg("generated key was too small to use")
 		return
 	}
 
-	id, err := s.Insert(context.Background(), createdKey)
+	id, err := s.Insert(ctx, createdKey)
 	if err != nil {
-		s.Println("failed to add key to the database: ", err)
+		log.Err(err).Msg("failed to add key to the database")
 	}
 
-	s.Println("added key to database, id: ", id)
+	log.Info().Any("id", id).Msg("added key to the database")
 }
 
 func (s *Server) ListenAndServe() error {
