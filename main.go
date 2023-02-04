@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 
+	"github.com/handsomefox/gowarp/server"
 	"github.com/rs/zerolog/log"
 	"github.com/sethvargo/go-envconfig"
 )
@@ -28,12 +29,12 @@ func main() {
 		c.Port = "8080"
 	}
 
-	tmpl, err := LoadTemplates()
+	tmpl, err := server.LoadTemplates()
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to load templates")
 	}
 
-	s, err := NewServer(ctx, ":"+c.Port, c.DatabaseURI, tmpl)
+	s, err := server.New(ctx, ":"+c.Port, c.DatabaseURI, tmpl)
 	if err != nil {
 		log.Fatal().Err(err).Send()
 	}

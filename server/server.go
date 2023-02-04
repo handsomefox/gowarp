@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"bufio"
@@ -35,8 +35,8 @@ type Server struct {
 	listenAddr string
 }
 
-// NewServer returns a *Server with all the required setup done.
-func NewServer(ctx context.Context, addr, connStr string, templates map[TemplateID]*template.Template) (*Server, error) {
+// New returns a *Server with all the required setup done.
+func New(ctx context.Context, addr, connStr string, templates map[TemplateID]*template.Template) (*Server, error) {
 	db, err := mongo.NewAccountModel(ctx, connStr)
 	if err != nil {
 		return nil, ErrConnStr
@@ -70,7 +70,7 @@ func NewServer(ctx context.Context, addr, connStr string, templates map[Template
 	}(server)
 
 	// Start a goroutine to generate keys in the background.
-	go server.Fill(200, 20*time.Minute)
+	go server.Fill(ctx, 200, 20*time.Minute)
 
 	return server, nil
 }
@@ -111,9 +111,8 @@ func (s *Server) UpdateConfiguration(ctx context.Context) error {
 	return nil
 }
 
-// Fill fills the db to the maxCount
-func (s *Server) Fill(maxCount int64, sleepDuration time.Duration) {
-	ctx := context.Background()
+// Fill fills the db to the maxCount.
+func (s *Server) Fill(ctx context.Context, maxCount int64, sleepDuration time.Duration) {
 	for {
 		if s.db.Len(ctx) >= maxCount {
 			time.Sleep(sleepDuration)
