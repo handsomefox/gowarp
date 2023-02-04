@@ -28,9 +28,9 @@ var (
 )
 
 type Server struct {
-	http.Handler
-	*mongo.AccountModel
 	c          *client.Configuration
+	db         *mongo.AccountModel
+	handler    http.Handler
 	templates  map[TemplateID]*template.Template
 	listenAddr string
 }
@@ -51,10 +51,10 @@ func NewServer(ctx context.Context, addr, connStr string, templates map[Template
 	c.Update(config)
 
 	server := &Server{
-		AccountModel: db,
-		c:            c,
-		listenAddr:   addr,
-		templates:    templates,
+		db:         db,
+		c:          c,
+		listenAddr: addr,
+		templates:  templates,
 	}
 
 	server.initRoutes()
@@ -78,7 +78,7 @@ func NewServer(ctx context.Context, addr, connStr string, templates map[Template
 func (s *Server) ListenAndServe() error {
 	srv := &http.Server{
 		Addr:              s.listenAddr,
-		Handler:           s,
+		Handler:           s.handler,
 		ReadTimeout:       1 * time.Minute,
 		WriteTimeout:      1 * time.Minute,
 		ReadHeaderTimeout: 1 * time.Minute,
@@ -99,7 +99,7 @@ func (s *Server) initRoutes() {
 	r.Get("/config/update", s.HandleUpdateConfig())
 	r.HandleFunc("/key/generate", RateLimit(s.HandleGenerateKey(), 20, 1*time.Hour))
 
-	s.Handler = r
+	s.handler = r
 }
 
 func (s *Server) UpdateConfiguration(ctx context.Context) error {
@@ -115,18 +115,18 @@ func (s *Server) UpdateConfiguration(ctx context.Context) error {
 func (s *Server) Fill(maxCount int64, sleepDuration time.Duration) {
 	ctx := context.Background()
 	for {
-		if s.Len(ctx) >= maxCount {
+		if s.db.Len(ctx) >= maxCount {
 			time.Sleep(sleepDuration)
 		}
 		s.pushNewKeyToDatabase()
-		log.Info().Int64("current_key_count", s.Len(ctx))
+		log.Info().Int64("current_key_count", s.db.Len(ctx))
 		time.Sleep(30 * time.Second)
 	}
 }
 
 // GetKey either returns a key that is already stored or creates a new one.
 func (s *Server) GetKey(ctx context.Context) (*models.Account, error) {
-	item, err := s.GetAny(ctx)
+	item, err := s.db.GetAny(ctx)
 	if err != nil {
 		c := client.NewClient(s.c)
 		key, err := c.NewAccountWithLicense(ctx)
@@ -138,11 +138,11 @@ func (s *Server) GetKey(ctx context.Context) (*models.Account, error) {
 		return key, nil
 	}
 
-	if err := s.Delete(ctx, item.ID); err != nil {
+	if err := s.db.Delete(ctx, item.ID); err != nil {
 		log.Err(err).Msg("failed to remove key from the database")
 	}
 
-	log.Info().Int64("current_key_count", s.Len(ctx))
+	log.Info().Int64("current_key_count", s.db.Len(ctx))
 	return item, nil
 }
 
@@ -178,7 +178,7 @@ func (s *Server) pushNewKeyToDatabase() {
 		return
 	}
 
-	id, err := s.Insert(ctx, createdKey)
+	id, err := s.db.Insert(ctx, createdKey)
 	if err != nil {
 		log.Err(err).Msg("failed to add key to the database")
 	}
