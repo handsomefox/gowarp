@@ -3,7 +3,6 @@ package server
 import (
 	"errors"
 	"net/http"
-	"time"
 
 	"github.com/rs/zerolog/log"
 )
@@ -71,10 +70,6 @@ type HandlerFuncErr func(w http.ResponseWriter, r *http.Request) error
 
 func (s *Server) WrapHandlerFuncErr(f HandlerFuncErr) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		defer func(name string, start time.Time) {
-			log.Trace().Dur(name+" took", time.Since(start)).Send()
-		}("handler", time.Now())
-
 		if err := f(w, r); err != nil {
 			var ae *APIError
 			if errors.As(err, &ae) {
