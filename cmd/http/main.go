@@ -19,7 +19,7 @@ type AppConfiguration struct {
 }
 
 func main() {
-	log.Level(zerolog.TraceLevel)
+	log.Logger = log.Logger.Level(zerolog.DebugLevel)
 
 	if err := godotenv.Load(); err != nil {
 		log.Err(err).Msg("failed to load .env file")
