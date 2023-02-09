@@ -14,7 +14,9 @@ lint: ## -- Run golangci-lint
 fmt: ## -- Run gofumpt on the project
 	gofumpt -l -w .
 
-exec: ## -- Run the project
+cli: ## -- Run the cli application
+	go run ./cmd/cli/main.go
+
 	@echo Running
 	go run ./cmd/http/main.go
 
