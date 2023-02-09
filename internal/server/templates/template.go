@@ -1,4 +1,4 @@
-package server
+package templates
 
 import (
 	"html/template"
@@ -14,9 +14,9 @@ const (
 	KeyID
 )
 
-func LoadTemplates() (map[TemplateID]*template.Template, error) {
+func Load() (map[TemplateID]*template.Template, error) {
 	const (
-		basePath   = "./resources/html/"
+		basePath   = "./assets/html/"
 		baseFile   = basePath + "base.html"
 		footerFile = basePath + "footer.html"
 	)

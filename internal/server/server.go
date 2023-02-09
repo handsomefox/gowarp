@@ -12,9 +12,11 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 
-	"github.com/handsomefox/gowarp/client"
-	"github.com/handsomefox/gowarp/models"
-	"github.com/handsomefox/gowarp/models/mongo"
+	"github.com/handsomefox/gowarp/internal/models"
+	"github.com/handsomefox/gowarp/internal/models/mongo"
+	"github.com/handsomefox/gowarp/internal/server/ratelimiter"
+	"github.com/handsomefox/gowarp/internal/server/templates"
+	"github.com/handsomefox/gowarp/pkg/client"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 )
@@ -31,13 +33,13 @@ type Server struct {
 	c          *client.Configuration
 	db         *mongo.AccountModel
 	handler    http.Handler
-	templates  map[TemplateID]*template.Template
+	templates  map[templates.TemplateID]*template.Template
 	listenAddr string
 }
 
 // New returns a *Server with all the required setup done.
-func New(ctx context.Context, addr, connStr string, templates map[TemplateID]*template.Template) (*Server, error) {
-	db, err := mongo.NewAccountModel(ctx, connStr)
+func New(ctx context.Context, addr, connStr, dbname, colname string, tmpl map[templates.TemplateID]*template.Template) (*Server, error) {
+	db, err := mongo.NewAccountModel(ctx, connStr, dbname, colname)
 	if err != nil {
 		return nil, ErrConnStr
 	}
@@ -54,7 +56,7 @@ func New(ctx context.Context, addr, connStr string, templates map[TemplateID]*te
 		db:         db,
 		c:          c,
 		listenAddr: addr,
-		templates:  templates,
+		templates:  tmpl,
 	}
 
 	server.initRoutes()
@@ -94,10 +96,10 @@ func (s *Server) initRoutes() {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Logger)
 
-	r.Handle("/static/*", http.StripPrefix("/static", http.FileServer(http.Dir("./resources/static"))))
+	r.Handle("/static/*", http.StripPrefix("/static", http.FileServer(http.Dir("./assets/static"))))
 	r.Get("/", s.HandleHomePage())
 	r.Get("/config/update", s.HandleUpdateConfig())
-	r.HandleFunc("/key/generate", RateLimit(s.HandleGenerateKey(), 20, 1*time.Hour))
+	r.HandleFunc("/key/generate", ratelimiter.New(s.HandleGenerateKey(), 20, 1*time.Hour))
 
 	s.handler = r
 }

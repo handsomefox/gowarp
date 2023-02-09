@@ -3,7 +3,7 @@ package mongo
 import (
 	"context"
 
-	"github.com/handsomefox/gowarp/models"
+	"github.com/handsomefox/gowarp/internal/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -14,7 +14,7 @@ type AccountModel struct {
 	collection *mongo.Collection
 }
 
-func NewAccountModel(ctx context.Context, uri string) (*AccountModel, error) {
+func NewAccountModel(ctx context.Context, uri, database, collection string) (*AccountModel, error) {
 	clientOptions := options.Client().ApplyURI(uri)
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
@@ -25,9 +25,9 @@ func NewAccountModel(ctx context.Context, uri string) (*AccountModel, error) {
 	if err != nil {
 		return nil, models.ErrPingFailed
 	}
-	collection := client.Database("gowarp").Collection("keys")
+	coll := client.Database(database).Collection(collection)
 
-	return &AccountModel{collection: collection}, nil
+	return &AccountModel{collection: coll}, nil
 }
 
 func (am *AccountModel) Insert(ctx context.Context, acc *models.Account) (id any, err error) {
