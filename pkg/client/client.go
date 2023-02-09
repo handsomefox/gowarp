@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/handsomefox/gowarp/models"
+	"github.com/handsomefox/gowarp/internal/models"
 	"github.com/rs/zerolog/log"
 )
 
