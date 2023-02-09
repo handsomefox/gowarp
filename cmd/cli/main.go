@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/handsomefox/gowarp/internal/server"
@@ -41,8 +42,8 @@ func main() {
 		log.Fatal().Int64("ref_count", rc).Msg("generated key is too small to use")
 	}
 
-	log.Info().Str("License", acc.License).
-		Int64("Referral count (in GB)", rc).
-		Str("License Type", acc.Type).
-		Msg("Generated a new account successfully!")
+	log.Info().Msg("Generated a new account successfully!")
+	log.Info().Str("License             ", acc.License).Send()
+	log.Info().Str("Referral count (GB) ", fmt.Sprint(rc)).Send()
+	log.Info().Str("License Type        ", acc.Type).Send()
 }
