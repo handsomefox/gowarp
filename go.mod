@@ -5,6 +5,7 @@ go 1.20
 require (
 	github.com/go-chi/chi v1.5.4
 	github.com/go-chi/chi/v5 v5.0.8
+	github.com/joho/godotenv v1.5.1
 	github.com/rs/zerolog v1.29.0
 	github.com/sethvargo/go-envconfig v0.8.3
 	go.mongodb.org/mongo-driver v1.11.1
