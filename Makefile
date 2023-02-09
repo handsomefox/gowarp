@@ -17,3 +17,7 @@ fmt: ## -- Run gofumpt on the project
 exec: ## -- Run the project
 	@echo Running
 	go run ./cmd/http/main.go
+
+pre: ## -- Install the prerequisites
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.1
+	go install mvdan.cc/gofumpt@latest
