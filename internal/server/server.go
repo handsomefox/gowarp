@@ -119,7 +119,7 @@ func (s *Server) Fill(ctx context.Context, maxCount int64, sleepDuration time.Du
 		if s.db.Len(ctx) >= maxCount {
 			time.Sleep(sleepDuration)
 		}
-		s.pushNewKeyToDatabase()
+		s.pushNewKeyToDatabase(ctx)
 		log.Info().Int64("current_key_count", s.db.Len(ctx))
 		time.Sleep(30 * time.Second)
 	}
@@ -148,10 +148,9 @@ func (s *Server) GetKey(ctx context.Context) (*models.Account, error) {
 }
 
 // pushNewKeyToDatabase wraps the client.NewAccountWithLicense and stores the key inside database.
-func (s *Server) pushNewKeyToDatabase() {
+func (s *Server) pushNewKeyToDatabase(ctx context.Context) {
 	var (
 		errg       = new(errgroup.Group)
-		ctx        = context.Background()
 		createdKey *models.Account
 	)
 	errg.Go(func() error {
