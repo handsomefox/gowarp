@@ -10,16 +10,16 @@ Before running, you should consider looking at `.env-example` file which
 has an example of the environment variables that need to be set before
 running the project.
 
-To execute, run:
+To start the server, run:
 
-```bash
-make exec
+```shell
+make run_serve
 ```
 
-To build, run:
+To start the cli app, run:
 
-```bash
-make build
+```shell
+make run_cli
 ```
 
 The application expects the working directory to be the root of the project.
