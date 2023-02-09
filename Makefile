@@ -17,7 +17,7 @@ fmt: ## -- Run gofumpt on the project
 cli: ## -- Run the cli application
 	go run ./cmd/cli/main.go
 
-	@echo Running
+serve: ## -- Start the server
 	go run ./cmd/http/main.go
 
 pre: ## -- Install the prerequisites
