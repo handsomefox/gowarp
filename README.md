@@ -13,13 +13,13 @@ running the project.
 To execute, run:
 
 ```bash
-    make exec
+make exec
 ```
 
 To build, run:
 
 ```bash
-    make build
+make build
 ```
 
 The application expects the working directory to be the root of the project.
