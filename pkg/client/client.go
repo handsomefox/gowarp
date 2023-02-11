@@ -59,9 +59,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 }
 
 func (c *Client) NewAccount(ctx context.Context) (*Account, error) {
-	defer func(name string, start time.Time) {
-		log.Trace().Dur(name+" took", time.Since(start)).Send()
-	}("NewAccount()", time.Now())
+	defer timeFunction("NewAccount", time.Now())
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.config.BaseURL()+"/reg", http.NoBody)
 	if err != nil {
@@ -86,9 +84,7 @@ func (c *Client) NewAccount(ctx context.Context) (*Account, error) {
 }
 
 func (c *Client) AddReferrer(ctx context.Context, acc, referrer *Account) error {
-	defer func(name string, start time.Time) {
-		log.Trace().Dur(name+" took", time.Since(start)).Send()
-	}("AddReferrer()", time.Now())
+	defer timeFunction("AddReferrer", time.Now())
 
 	payload, err := json.Marshal(map[string]string{"referrer": referrer.ID})
 	if err != nil {
@@ -116,9 +112,7 @@ func (c *Client) AddReferrer(ctx context.Context, acc, referrer *Account) error 
 }
 
 func (c *Client) RemoveDevice(ctx context.Context, acc *Account) error {
-	defer func(name string, start time.Time) {
-		log.Trace().Dur(name+" took", time.Since(start)).Send()
-	}("RemoveDevice()", time.Now())
+	defer timeFunction("RemoveDevice", time.Now())
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.config.BaseURL()+"/reg/"+acc.ID, http.NoBody)
 	if err != nil {
@@ -140,9 +134,7 @@ func (c *Client) RemoveDevice(ctx context.Context, acc *Account) error {
 }
 
 func (c *Client) ApplyKey(ctx context.Context, acc *Account, key string) error {
-	defer func(name string, start time.Time) {
-		log.Trace().Dur(name+" took", time.Since(start)).Send()
-	}("ApplyKey()", time.Now())
+	defer timeFunction("ApplyKey", time.Now())
 
 	payload, err := json.Marshal(map[string]string{"license": key})
 	if err != nil {
@@ -171,9 +163,7 @@ func (c *Client) ApplyKey(ctx context.Context, acc *Account, key string) error {
 }
 
 func (c *Client) GetAccountData(ctx context.Context, acc *Account) (*models.Account, error) {
-	defer func(name string, start time.Time) {
-		log.Trace().Dur(name+" took", time.Since(start)).Send()
-	}("GetAccountData()", time.Now())
+	defer timeFunction("GetAccountData", time.Now())
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.config.BaseURL()+"/reg/"+acc.ID+"/account", http.NoBody)
 	if err != nil {
@@ -201,9 +191,7 @@ func (c *Client) GetAccountData(ctx context.Context, acc *Account) (*models.Acco
 
 // NewAccountWithLicense creates models.Account with random license.
 func (c *Client) NewAccountWithLicense(ctx context.Context) (*models.Account, error) {
-	defer func(name string, start time.Time) {
-		log.Trace().Dur(name+" took", time.Since(start)).Send()
-	}("NewAccountWithLicense()", time.Now())
+	defer timeFunction("NewAccountWithLicense", time.Now())
 
 	keyAccount, err := c.NewAccount(ctx)
 	if err != nil {
@@ -247,4 +235,8 @@ func (c *Client) NewAccountWithLicense(ctx context.Context) (*models.Account, er
 	}
 
 	return accountData, nil
+}
+
+func timeFunction(name string, start time.Time) {
+	log.Trace().Str(name+"() took", time.Since(start).String()).Send()
 }
