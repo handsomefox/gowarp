@@ -1,6 +1,10 @@
 package client
 
 import (
+	"bufio"
+	"context"
+	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -90,4 +94,50 @@ func DefaultConfigurationData() *ConfigurationData {
 		},
 		WaitTime: 45 * time.Second,
 	}
+}
+
+// GetConfiguration returns a new configuration parsed from the url, or an error if it fails to parse.
+func GetConfiguration(ctx context.Context, URL string) (*ConfigurationData, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, URL, http.NoBody)
+	if err != nil {
+		return nil, ErrFetchingConfiguration
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, ErrFetchingConfiguration
+	}
+	defer res.Body.Close()
+
+	config := &ConfigurationData{}
+
+	scanner := bufio.NewScanner(res.Body)
+
+	for scanner.Scan() {
+		text := scanner.Text()
+		split := strings.Split(text, "=")
+
+		if len(split) < 2 { // it should be a key=value pair
+			return nil, err
+		}
+
+		key, value := split[0], split[1]
+
+		switch key {
+		case "CfClientVersion":
+			config.CFClientVersion = value
+		case "UserAgent":
+			config.UserAgent = value
+		case "Host":
+			config.Host = value
+		case "BaseURL":
+			config.BaseURL = value
+		case "Keys":
+			if keys := strings.Split(value, ","); len(keys) > 0 {
+				config.Keys = keys
+			}
+		}
+	}
+
+	return config, nil
 }
