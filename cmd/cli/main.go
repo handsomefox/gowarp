@@ -27,7 +27,7 @@ func main() {
 		config.Update(cdata)
 	}
 
-	c := client.NewClient(config)
+	c := client.NewClient(config, true)
 
 	acc, err := c.NewAccountWithLicense(ctx)
 	if err != nil {

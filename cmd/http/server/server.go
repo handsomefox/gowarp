@@ -30,7 +30,8 @@ var (
 )
 
 type Server struct {
-	c          *client.Configuration
+	config     *client.Configuration
+	client     *client.Client
 	db         *mongo.AccountModel
 	handler    http.Handler
 	templates  map[templates.TemplateID]*template.Template
@@ -54,7 +55,8 @@ func New(ctx context.Context, addr, connStr, dbname, colname string, tmpl map[te
 
 	server := &Server{
 		db:         db,
-		c:          c,
+		config:     c,
+		client:     client.NewClient(c, true),
 		listenAddr: addr,
 		templates:  tmpl,
 	}
@@ -109,7 +111,7 @@ func (s *Server) UpdateConfiguration(ctx context.Context) error {
 	if err != nil {
 		return ErrFetchingConfiguration
 	}
-	s.c.Update(config)
+	s.config.Update(config)
 	return nil
 }
 
@@ -129,8 +131,7 @@ func (s *Server) Fill(ctx context.Context, maxCount int64, sleepDuration time.Du
 func (s *Server) GetKey(ctx context.Context) (*models.Account, error) {
 	item, err := s.db.GetAny(ctx)
 	if err != nil {
-		c := client.NewClient(s.c)
-		key, err := c.NewAccountWithLicense(ctx)
+		key, err := s.client.NewAccountWithLicense(ctx)
 		if err != nil {
 			log.Err(err).Send()
 			return nil, ErrCreateKey
@@ -154,8 +155,7 @@ func (s *Server) pushNewKeyToDatabase(ctx context.Context) {
 		createdKey *models.Account
 	)
 	errg.Go(func() error {
-		c := client.NewClient(s.c)
-		key, err := c.NewAccountWithLicense(ctx)
+		key, err := s.client.NewAccountWithLicense(ctx)
 		if err != nil {
 			return ErrGetKey
 		}

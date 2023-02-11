@@ -15,11 +15,12 @@ import (
 )
 
 type Client struct {
-	cl     *http.Client
-	config *Configuration
+	cl      *http.Client
+	config  *Configuration
+	logging bool
 }
 
-func NewClient(config *Configuration) *Client {
+func NewClient(config *Configuration, logging bool) *Client {
 	if config == nil {
 		config = NewConfiguration()
 	}
@@ -38,7 +39,8 @@ func NewClient(config *Configuration) *Client {
 				ExpectContinueTimeout: 1 * time.Second,
 			},
 		},
-		config: config,
+		config:  config,
+		logging: logging,
 	}
 }
 
@@ -47,7 +49,7 @@ func (c *Client) UpdateConfig(config *ConfigurationData) {
 		return
 	}
 	c.config.Update(config)
-	log.Info().Msg("config updated")
+	c.logInfo("config updated")
 }
 
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
@@ -59,24 +61,24 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 }
 
 func (c *Client) NewAccount(ctx context.Context) (*Account, error) {
-	defer timeFunction("NewAccount", time.Now())
+	defer c.logTiming("NewAccount", time.Now())
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.config.BaseURL()+"/reg", http.NoBody)
 	if err != nil {
-		log.Err(err).Send()
+		c.logError(err)
 		return nil, ErrRegAccount
 	}
 
 	res, err := c.Do(req)
 	if err != nil {
-		log.Err(err).Send()
+		c.logError(err)
 		return nil, ErrRegAccount
 	}
 	defer res.Body.Close()
 
 	var acc Account
 	if err := json.NewDecoder(res.Body).Decode(&acc); err != nil {
-		log.Err(err).Send()
+		c.logError(err)
 		return nil, ErrDecodeAccount
 	}
 
@@ -84,17 +86,17 @@ func (c *Client) NewAccount(ctx context.Context) (*Account, error) {
 }
 
 func (c *Client) AddReferrer(ctx context.Context, acc, referrer *Account) error {
-	defer timeFunction("AddReferrer", time.Now())
+	defer c.logTiming("AddReferrer", time.Now())
 
 	payload, err := json.Marshal(map[string]string{"referrer": referrer.ID})
 	if err != nil {
-		log.Err(err).Send()
+		c.logError(err)
 		return ErrEncodeAccount
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, c.config.BaseURL()+"/reg/"+acc.ID, bytes.NewBuffer(payload))
 	if err != nil {
-		log.Err(err).Send()
+		c.logError(err)
 		return ErrUpdateAccount
 	}
 
@@ -103,7 +105,7 @@ func (c *Client) AddReferrer(ctx context.Context, acc, referrer *Account) error 
 
 	res, err := c.Do(req)
 	if err != nil {
-		log.Err(err).Send()
+		c.logError(err)
 		return ErrUpdateAccount
 	}
 	defer res.Body.Close()
@@ -112,11 +114,11 @@ func (c *Client) AddReferrer(ctx context.Context, acc, referrer *Account) error 
 }
 
 func (c *Client) RemoveDevice(ctx context.Context, acc *Account) error {
-	defer timeFunction("RemoveDevice", time.Now())
+	defer c.logTiming("RemoveDevice", time.Now())
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.config.BaseURL()+"/reg/"+acc.ID, http.NoBody)
 	if err != nil {
-		log.Err(err).Send()
+		c.logError(err)
 		return ErrUpdateAccount
 	}
 
@@ -125,7 +127,7 @@ func (c *Client) RemoveDevice(ctx context.Context, acc *Account) error {
 
 	res, err := c.Do(req)
 	if err != nil {
-		log.Err(err).Send()
+		c.logError(err)
 		return ErrUpdateAccount
 	}
 	defer res.Body.Close()
@@ -134,18 +136,18 @@ func (c *Client) RemoveDevice(ctx context.Context, acc *Account) error {
 }
 
 func (c *Client) ApplyKey(ctx context.Context, acc *Account, key string) error {
-	defer timeFunction("ApplyKey", time.Now())
+	defer c.logTiming("ApplyKey", time.Now())
 
 	payload, err := json.Marshal(map[string]string{"license": key})
 	if err != nil {
-		log.Err(err).Send()
+		c.logError(err)
 		return ErrEncodeAccount
 	}
 
 	req, err := http.NewRequestWithContext(
 		ctx, http.MethodPut, c.config.BaseURL()+"/reg/"+acc.ID+"/account", bytes.NewBuffer(payload))
 	if err != nil {
-		log.Err(err).Send()
+		c.logError(err)
 		return ErrUpdateAccount
 	}
 
@@ -154,7 +156,7 @@ func (c *Client) ApplyKey(ctx context.Context, acc *Account, key string) error {
 
 	res, err := c.Do(req)
 	if err != nil {
-		log.Err(err).Send()
+		c.logError(err)
 		return ErrUpdateAccount
 	}
 	defer res.Body.Close()
@@ -163,11 +165,11 @@ func (c *Client) ApplyKey(ctx context.Context, acc *Account, key string) error {
 }
 
 func (c *Client) GetAccountData(ctx context.Context, acc *Account) (*models.Account, error) {
-	defer timeFunction("GetAccountData", time.Now())
+	defer c.logTiming("GetAccountData", time.Now())
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.config.BaseURL()+"/reg/"+acc.ID+"/account", http.NoBody)
 	if err != nil {
-		log.Err(err).Send()
+		c.logError(err)
 		return nil, ErrGetAccountData
 	}
 
@@ -175,14 +177,14 @@ func (c *Client) GetAccountData(ctx context.Context, acc *Account) (*models.Acco
 
 	res, err := c.Do(req)
 	if err != nil {
-		log.Err(err).Send()
+		c.logError(err)
 		return nil, ErrGetAccountData
 	}
 	defer res.Body.Close()
 
 	var accountData models.Account
 	if err := json.NewDecoder(res.Body).Decode(&accountData); err != nil {
-		log.Err(err).Send()
+		c.logError(err)
 		return nil, ErrDecodeAccount
 	}
 
@@ -191,7 +193,7 @@ func (c *Client) GetAccountData(ctx context.Context, acc *Account) (*models.Acco
 
 // NewAccountWithLicense creates models.Account with random license.
 func (c *Client) NewAccountWithLicense(ctx context.Context) (*models.Account, error) {
-	defer timeFunction("NewAccountWithLicense", time.Now())
+	defer c.logTiming("NewAccountWithLicense", time.Now())
 
 	keyAccount, err := c.NewAccount(ctx)
 	if err != nil {
@@ -237,6 +239,20 @@ func (c *Client) NewAccountWithLicense(ctx context.Context) (*models.Account, er
 	return accountData, nil
 }
 
-func timeFunction(name string, start time.Time) {
-	log.Trace().Str(name+"() took", time.Since(start).String()).Send()
+func (c *Client) logTiming(name string, start time.Time) {
+	if c.logging {
+		log.Trace().Str(name+"() took", time.Since(start).String()).Send()
+	}
+}
+
+func (c *Client) logError(err error) {
+	if c.logging {
+		log.Err(err).Send()
+	}
+}
+
+func (c *Client) logInfo(msg string) {
+	if c.logging {
+		log.Info().Msg(msg)
+	}
 }
