@@ -47,4 +47,7 @@ func main() {
 	log.Info().Str("License             ", acc.License).Send()
 	log.Info().Str("Referral count (GB) ", fmt.Sprint(rc)).Send()
 	log.Info().Str("License Type        ", acc.Type).Send()
+
+	fmt.Print("Press enter to exit...")
+	fmt.Scanln()
 }
