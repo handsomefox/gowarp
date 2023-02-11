@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/handsomefox/gowarp/internal/server"
 	"github.com/handsomefox/gowarp/pkg/client"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
+
+const pastebinURL = "https://pastebin.com/raw/pwtQLBiK"
 
 func main() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
@@ -18,7 +19,7 @@ func main() {
 	ctx := context.Background()
 
 	config := client.NewConfiguration()
-	cdata, err := server.GetClientConfiguration(ctx)
+	cdata, err := client.GetConfiguration(ctx, pastebinURL)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed to load the latest config, using fallback")
 	} else {

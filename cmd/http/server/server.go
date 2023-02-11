@@ -1,25 +1,25 @@
 package server
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"html/template"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 
+	"github.com/handsomefox/gowarp/cmd/http/server/ratelimiter"
+	"github.com/handsomefox/gowarp/cmd/http/server/templates"
 	"github.com/handsomefox/gowarp/internal/models"
 	"github.com/handsomefox/gowarp/internal/models/mongo"
-	"github.com/handsomefox/gowarp/internal/server/ratelimiter"
-	"github.com/handsomefox/gowarp/internal/server/templates"
 	"github.com/handsomefox/gowarp/pkg/client"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 )
+
+const pastebinURL = "https://pastebin.com/raw/pwtQLBiK"
 
 var (
 	ErrGetKey                = errors.New("server: failed to get the key")
@@ -44,7 +44,7 @@ func New(ctx context.Context, addr, connStr, dbname, colname string, tmpl map[te
 		return nil, ErrConnStr
 	}
 
-	config, err := GetClientConfiguration(ctx)
+	config, err := client.GetConfiguration(ctx, pastebinURL)
 	if err != nil {
 		return nil, ErrFetchingConfiguration
 	}
@@ -105,7 +105,7 @@ func (s *Server) initRoutes() {
 }
 
 func (s *Server) UpdateConfiguration(ctx context.Context) error {
-	config, err := GetClientConfiguration(ctx)
+	config, err := client.GetConfiguration(ctx, pastebinURL)
 	if err != nil {
 		return ErrFetchingConfiguration
 	}
@@ -184,52 +184,4 @@ func (s *Server) pushNewKeyToDatabase(ctx context.Context) {
 	}
 
 	log.Info().Any("id", id).Msg("added key to the database")
-}
-
-// GetClientConfiguration returns a new configuration from the hardcoded pastebin url.
-func GetClientConfiguration(ctx context.Context) (*client.ConfigurationData, error) {
-	const pastebinURL = "https://pastebin.com/raw/pwtQLBiK"
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, pastebinURL, http.NoBody)
-	if err != nil {
-		return nil, ErrFetchingConfiguration
-	}
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, ErrFetchingConfiguration
-	}
-	defer res.Body.Close()
-
-	config := &client.ConfigurationData{}
-
-	scanner := bufio.NewScanner(res.Body)
-
-	for scanner.Scan() {
-		text := scanner.Text()
-		split := strings.Split(text, "=")
-
-		if len(split) < 2 { // it should be a key=value pair
-			return nil, ErrUnexpectedBody
-		}
-
-		key, value := split[0], split[1]
-
-		switch key {
-		case "CfClientVersion":
-			config.CFClientVersion = value
-		case "UserAgent":
-			config.UserAgent = value
-		case "Host":
-			config.Host = value
-		case "BaseURL":
-			config.BaseURL = value
-		case "Keys":
-			if keys := strings.Split(value, ","); len(keys) > 0 {
-				config.Keys = keys
-			}
-		}
-	}
-
-	return config, nil
 }

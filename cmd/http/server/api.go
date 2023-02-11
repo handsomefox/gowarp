@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/handsomefox/gowarp/internal/server/templates"
+	"github.com/handsomefox/gowarp/cmd/http/server/templates"
 	"github.com/rs/zerolog/log"
 )
 
