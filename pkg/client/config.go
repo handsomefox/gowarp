@@ -3,6 +3,7 @@ package client
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 	"sync"
@@ -97,15 +98,15 @@ func DefaultConfigurationData() *ConfigurationData {
 }
 
 // GetConfiguration returns a new configuration parsed from the url, or an error if it fails to parse.
-func GetConfiguration(ctx context.Context, URL string) (*ConfigurationData, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, URL, http.NoBody)
+func GetConfiguration(ctx context.Context, url string) (*ConfigurationData, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
-		return nil, ErrFetchingConfiguration
+		return nil, err
 	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, ErrFetchingConfiguration
+		return nil, err
 	}
 	defer res.Body.Close()
 
@@ -117,8 +118,8 @@ func GetConfiguration(ctx context.Context, URL string) (*ConfigurationData, erro
 		text := scanner.Text()
 		split := strings.Split(text, "=")
 
-		if len(split) < 2 { // it should be a key=value pair
-			return nil, err
+		if len(split) < 2 {
+			return nil, fmt.Errorf("%w: unexpected configuration format", ErrFetchingConfiguration)
 		}
 
 		key, value := split[0], split[1]
@@ -137,6 +138,10 @@ func GetConfiguration(ctx context.Context, URL string) (*ConfigurationData, erro
 				config.Keys = keys
 			}
 		}
+	}
+
+	if config.Keys == nil {
+		return nil, fmt.Errorf("%w: no keys in fetched configuration", ErrFetchingConfiguration)
 	}
 
 	return config, nil
