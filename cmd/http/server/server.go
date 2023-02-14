@@ -111,7 +111,7 @@ func (s *Server) UpdateConfiguration(ctx context.Context) error {
 	if err != nil {
 		return ErrFetchingConfiguration
 	}
-	s.config.Update(config)
+	s.client.UpdateConfig(config)
 	return nil
 }
 
