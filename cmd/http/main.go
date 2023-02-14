@@ -40,18 +40,24 @@ func main() {
 		c.Port = "8080"
 	}
 
-	tmpl, err := templates.Load()
+	tmpls, err := templates.Load()
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to load templates")
 	}
 
-	s, err := server.New(ctx, ":"+c.Port, c.DatabaseURI, c.DatabaseName, c.CollectionName, tmpl)
+	dbParams := server.DBParams{
+		DBConnString: c.DatabaseURI,
+		DBName:       c.DatabaseName,
+		DBCollName:   c.CollectionName,
+	}
+
+	s, err := server.New(ctx, dbParams, tmpls)
 	if err != nil {
 		log.Fatal().Err(err).Send()
 	}
 
 	log.Info().Str("addr", "localhost").Str("port", c.Port).Msg("server started on http://localhost:" + c.Port)
-	if err := s.ListenAndServe(); err != nil {
+	if err := s.ListenAndServe(":" + c.Port); err != nil {
 		log.Fatal().Err(err).Send()
 	}
 }

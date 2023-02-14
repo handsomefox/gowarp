@@ -21,7 +21,7 @@ var ErrExecTmpl = &APIError{Err: "failed to exec tmpl", Status: http.StatusInter
 
 func (s *Server) HandleHomePage() http.HandlerFunc {
 	return s.WrapHandlerFuncErr(func(w http.ResponseWriter, _ *http.Request) error {
-		if err := s.templates[templates.HomeID].Execute(w, nil); err != nil {
+		if err := s.tmpls[templates.HomeID].Execute(w, nil); err != nil {
 			log.Err(err).Msg("failed to exec template")
 			return ErrExecTmpl
 		}
@@ -39,7 +39,7 @@ func (s *Server) HandleUpdateConfig() http.HandlerFunc {
 			return err
 		}
 
-		if err := s.templates[templates.ConfigID].Execute(w, "finished config update"); err != nil {
+		if err := s.tmpls[templates.ConfigID].Execute(w, "finished config update"); err != nil {
 			log.Err(err).Msg("failed to exec template")
 			return ErrExecTmpl
 		}
@@ -58,7 +58,7 @@ func (s *Server) HandleGenerateKey() http.HandlerFunc {
 			return ErrGetKey
 		}
 
-		if err := s.templates[templates.KeyID].Execute(w, key); err != nil {
+		if err := s.tmpls[templates.KeyID].Execute(w, key); err != nil {
 			log.Err(err).Msg("failed to exec template")
 			return ErrExecTmpl
 		}
@@ -91,7 +91,7 @@ func (s *Server) WrapHandlerFuncErr(f HandlerFuncErr) http.HandlerFunc {
 
 func (s *Server) WriteErr(w http.ResponseWriter, e *APIError) error {
 	w.WriteHeader(e.Status)
-	if err := s.templates[templates.ErrorID].Execute(w, e); err != nil {
+	if err := s.tmpls[templates.ErrorID].Execute(w, e); err != nil {
 		log.Err(err).Msg("failed to exec template")
 		return ErrExecTmpl
 	}

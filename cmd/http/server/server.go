@@ -3,11 +3,9 @@ package server
 import (
 	"context"
 	"errors"
-	"html/template"
 	"net/http"
 	"time"
 
-	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 
 	"github.com/handsomefox/gowarp/cmd/http/server/ratelimiter"
@@ -15,6 +13,7 @@ import (
 	"github.com/handsomefox/gowarp/internal/models"
 	"github.com/handsomefox/gowarp/internal/models/mongo"
 	"github.com/handsomefox/gowarp/pkg/client"
+	"github.com/handsomefox/gowarp/vendor/github.com/go-chi/chi/middleware"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 )
@@ -30,40 +29,65 @@ var (
 )
 
 type Server struct {
-	config     *client.Configuration
-	client     *client.Client
-	db         *mongo.AccountModel
-	handler    http.Handler
-	templates  map[templates.TemplateID]*template.Template
-	listenAddr string
+	client *client.Client
+
+	db *mongo.AccountModel
+
+	mux *chi.Mux
+
+	tmpls templates.Map
+}
+
+type DBParams struct {
+	DBConnString string
+	DBName       string
+	DBCollName   string
 }
 
 // New returns a *Server with all the required setup done.
-func New(ctx context.Context, addr, connStr, dbname, colname string, tmpl map[templates.TemplateID]*template.Template) (*Server, error) {
-	db, err := mongo.NewAccountModel(ctx, connStr, dbname, colname)
+func New(ctx context.Context, dbParams DBParams, tmpls templates.Map) (*Server, error) {
+	// Connect to the database
+	db, err := mongo.NewAccountModel(ctx, dbParams.DBConnString, dbParams.DBName, dbParams.DBCollName)
 	if err != nil {
 		return nil, ErrConnStr
 	}
 
+	// Create the server
+	server := &Server{
+		client: client.NewClient(client.NewConfiguration(), true),
+		db:     db,
+		tmpls:  tmpls,
+	}
+
+	// Get and set the most recent configuration
 	config, err := client.GetConfiguration(ctx, pastebinURL)
 	if err != nil {
 		return nil, ErrFetchingConfiguration
 	}
+	server.client.UpdateConfig(config)
 
-	c := client.NewConfiguration()
-	c.Update(config)
+	// Setup routing
+	r := chi.NewRouter()
 
-	server := &Server{
-		db:         db,
-		config:     c,
-		client:     client.NewClient(c, true),
-		listenAddr: addr,
-		templates:  tmpl,
-	}
+	r.Use(middleware.Heartbeat("/ping"))
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.Logger)
 
-	server.initRoutes()
+	r.Handle("/static/*",
+		http.StripPrefix("/static", http.FileServer(http.Dir("./assets/static"))))
 
-	// Start a goroutine to automatically update the config.
+	r.Get("/",
+		server.HandleHomePage())
+
+	r.Get("/config/update",
+		server.HandleUpdateConfig())
+
+	r.HandleFunc("/key/generate",
+		ratelimiter.New(server.HandleGenerateKey(), 20, 1*time.Hour))
+
+	server.mux = r
+
+	// Start a goroutine to periodically update the config.
 	go func(s *Server) {
 		for {
 			time.Sleep(1 * time.Hour) // update config every hour.
@@ -73,16 +97,17 @@ func New(ctx context.Context, addr, connStr, dbname, colname string, tmpl map[te
 		}
 	}(server)
 
-	// Start a goroutine to generate keys in the background.
+	// Start a goroutine to generate keys in the background if necessary.
 	go server.Fill(ctx, 200, 20*time.Minute)
 
 	return server, nil
 }
 
-func (s *Server) ListenAndServe() error {
+// ListenAndServe is a wrapper around (*http.Server).ListenAndServe().
+func (s *Server) ListenAndServe(listenAddr string) error {
 	srv := &http.Server{
-		Addr:              s.listenAddr,
-		Handler:           s.handler,
+		Addr:              listenAddr,
+		Handler:           s.mux,
 		ReadTimeout:       1 * time.Minute,
 		WriteTimeout:      1 * time.Minute,
 		ReadHeaderTimeout: 1 * time.Minute,
@@ -91,21 +116,7 @@ func (s *Server) ListenAndServe() error {
 	return srv.ListenAndServe()
 }
 
-func (s *Server) initRoutes() {
-	r := chi.NewRouter()
-
-	r.Use(middleware.Heartbeat("/ping"))
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.Logger)
-
-	r.Handle("/static/*", http.StripPrefix("/static", http.FileServer(http.Dir("./assets/static"))))
-	r.Get("/", s.HandleHomePage())
-	r.Get("/config/update", s.HandleUpdateConfig())
-	r.HandleFunc("/key/generate", ratelimiter.New(s.HandleGenerateKey(), 20, 1*time.Hour))
-
-	s.handler = r
-}
-
+// UpdateConfiguration fetches the most recent configuration and sets it.
 func (s *Server) UpdateConfiguration(ctx context.Context) error {
 	config, err := client.GetConfiguration(ctx, pastebinURL)
 	if err != nil {
