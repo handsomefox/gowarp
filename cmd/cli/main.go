@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/handsomefox/gowarp/pkg/client"
+	"github.com/handsomefox/gowarp/client"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )

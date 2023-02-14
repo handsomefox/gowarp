@@ -9,11 +9,11 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 
+	"github.com/handsomefox/gowarp/client"
 	"github.com/handsomefox/gowarp/cmd/http/server/ratelimiter"
 	"github.com/handsomefox/gowarp/cmd/http/server/templates"
 	"github.com/handsomefox/gowarp/internal/models"
 	"github.com/handsomefox/gowarp/internal/models/mongo"
-	"github.com/handsomefox/gowarp/pkg/client"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 )
