@@ -14,7 +14,9 @@ const (
 	KeyID
 )
 
-func Load() (map[TemplateID]*template.Template, error) {
+type Map map[TemplateID]*template.Template
+
+func Load() (Map, error) {
 	const (
 		basePath   = "./assets/html/"
 		baseFile   = basePath + "base.html"
