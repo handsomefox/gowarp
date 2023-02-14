@@ -30,12 +30,9 @@ var (
 
 type Server struct {
 	client *client.Client
-
-	db *mongo.AccountModel
-
-	mux *chi.Mux
-
-	tmpls templates.Map
+	db     *mongo.AccountModel
+	mux    *chi.Mux
+	tmpls  templates.Map
 }
 
 type DBParams struct {
@@ -69,21 +66,27 @@ func New(ctx context.Context, dbParams DBParams, tmpls templates.Map) (*Server, 
 	// Setup routing
 	r := chi.NewRouter()
 
-	r.Use(middleware.Heartbeat("/ping"))
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.Logger)
-
-	r.Handle("/static/*",
-		http.StripPrefix("/static", http.FileServer(http.Dir("./assets/static"))))
-
-	r.Get("/",
-		server.HandleHomePage())
-
-	r.Get("/config/update",
-		server.HandleUpdateConfig())
-
-	r.HandleFunc("/key/generate",
-		ratelimiter.New(server.HandleGenerateKey(), 20, 1*time.Hour))
+	r.Use(
+		middleware.Heartbeat("/ping"),
+		middleware.Recoverer,
+		middleware.Logger,
+	)
+	r.Handle(
+		"/static/*",
+		http.StripPrefix("/static", http.FileServer(http.Dir("./assets/static"))),
+	)
+	r.Get(
+		"/",
+		server.HandleHomePage(),
+	)
+	r.Get(
+		"/config/update",
+		server.HandleUpdateConfig(),
+	)
+	r.HandleFunc(
+		"/key/generate",
+		ratelimiter.New(server.HandleGenerateKey(), 20, 1*time.Hour),
+	)
 
 	server.mux = r
 
