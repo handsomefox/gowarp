@@ -67,9 +67,9 @@ func New(ctx context.Context, dbParams DBParams, tmpls templates.Map) (*Server, 
 	r := chi.NewRouter()
 
 	r.Use(
+		middleware.Logger,
 		middleware.Heartbeat("/ping"),
 		middleware.Recoverer,
-		middleware.Logger,
 	)
 	r.Handle(
 		"/static/*",
