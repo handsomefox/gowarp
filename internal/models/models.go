@@ -6,10 +6,10 @@ import (
 )
 
 type Account struct {
-	ID       any         `bson:"_id,omitempty" json:"id,omitempty"`
-	Type     string      `bson:"account_type" json:"account_type"`
+	ID       any         `bson:"_id,omitempty"  json:"id,omitempty"`
+	Type     string      `bson:"account_type"   json:"account_type"`
 	RefCount json.Number `bson:"referral_count" json:"referral_count"`
-	License  string      `bson:"license" json:"license"`
+	License  string      `bson:"license"        json:"license"`
 }
 
 var (

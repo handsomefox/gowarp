@@ -36,7 +36,7 @@ func NewClient(logging bool) *Client {
 				ExpectContinueTimeout: 1 * time.Second,
 			},
 		},
-		config:  GetConfiguration(context.Background()),
+		config:  GetConfiguration(),
 		logging: logging,
 	}
 }
@@ -237,11 +237,5 @@ func (c *Client) logTiming(name string, start time.Time) {
 func (c *Client) logError(err error) {
 	if c.logging {
 		log.Err(err).Send()
-	}
-}
-
-func (c *Client) logInfo(msg string) {
-	if c.logging {
-		log.Info().Msg(msg)
 	}
 }

@@ -18,8 +18,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-const pastebinURL = "https://pastebin.com/raw/pwtQLBiK"
-
 var (
 	ErrGetKey                = errors.New("server: failed to get the key")
 	ErrConnStr               = errors.New("server: invalid connection string")
@@ -101,13 +99,14 @@ func (s *Server) ListenAndServe(listenAddr string) error {
 
 // Fill fills the db to the maxCount.
 func (s *Server) Fill(ctx context.Context, maxCount int64, sleepDuration time.Duration) {
-	for {
-		if s.db.Len(ctx) >= maxCount {
+	tt := time.NewTicker(time.Second * 30)
+	defer tt.Stop()
+	for range tt.C {
+		if s.db.Len(ctx) >= maxCount*4 {
 			time.Sleep(sleepDuration)
 		}
 		s.pushNewKeyToDatabase(ctx)
-		log.Info().Int64("current_key_count", s.db.Len(ctx))
-		time.Sleep(30 * time.Second)
+		log.Info().Int64("current_key_count", s.db.Len(ctx)).Send()
 	}
 }
 
@@ -128,7 +127,7 @@ func (s *Server) GetKey(ctx context.Context) (*models.Account, error) {
 		log.Err(err).Msg("failed to remove key from the database")
 	}
 
-	log.Info().Int64("current_key_count", s.db.Len(ctx))
+	log.Info().Int64("current_key_count", s.db.Len(ctx)).Send()
 	return item, nil
 }
 
