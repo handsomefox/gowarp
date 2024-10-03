@@ -51,17 +51,10 @@ func New(ctx context.Context, dbParams DBParams, tmpls templates.Map) (*Server, 
 
 	// Create the server
 	server := &Server{
-		client: client.NewClient(client.NewConfiguration(), true),
+		client: client.NewClient(true),
 		db:     db,
 		tmpls:  tmpls,
 	}
-
-	// Get and set the most recent configuration
-	config, err := client.GetConfiguration(ctx, pastebinURL)
-	if err != nil {
-		return nil, ErrFetchingConfiguration
-	}
-	server.client.UpdateConfig(config)
 
 	// Setup routing
 	r := chi.NewRouter()
@@ -79,26 +72,13 @@ func New(ctx context.Context, dbParams DBParams, tmpls templates.Map) (*Server, 
 		"/",
 		server.HandleHomePage(),
 	)
-	r.Get(
-		"/config/update",
-		server.HandleUpdateConfig(),
-	)
+
 	r.HandleFunc(
 		"/key/generate",
 		ratelimiter.New(server.HandleGenerateKey(), 20, 1*time.Hour),
 	)
 
 	server.mux = r
-
-	// Start a goroutine to periodically update the config.
-	go func(s *Server) {
-		for {
-			time.Sleep(1 * time.Hour) // update config every hour.
-			if err := s.UpdateConfiguration(ctx); err != nil {
-				log.Err(err).Send()
-			}
-		}
-	}(server)
 
 	// Start a goroutine to generate keys in the background if necessary.
 	go server.Fill(ctx, 200, 20*time.Minute)
@@ -117,16 +97,6 @@ func (s *Server) ListenAndServe(listenAddr string) error {
 	}
 
 	return srv.ListenAndServe()
-}
-
-// UpdateConfiguration fetches the most recent configuration and sets it.
-func (s *Server) UpdateConfiguration(ctx context.Context) error {
-	config, err := client.GetConfiguration(ctx, pastebinURL)
-	if err != nil {
-		return ErrFetchingConfiguration
-	}
-	s.client.UpdateConfig(config)
-	return nil
 }
 
 // Fill fills the db to the maxCount.

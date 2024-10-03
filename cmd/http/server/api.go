@@ -29,25 +29,6 @@ func (s *Server) HandleHomePage() http.HandlerFunc {
 	})
 }
 
-func (s *Server) HandleUpdateConfig() http.HandlerFunc {
-	return s.WrapHandlerFuncErr(func(w http.ResponseWriter, r *http.Request) error {
-		ctx := r.Context()
-
-		log.Info().Msg("started config update")
-		if err := s.UpdateConfiguration(ctx); err != nil {
-			log.Err(err).Msg("failed to update config")
-			return err
-		}
-
-		if err := s.tmpls[templates.ConfigID].Execute(w, "finished config update"); err != nil {
-			log.Err(err).Msg("failed to exec template")
-			return ErrExecTmpl
-		}
-
-		return nil
-	})
-}
-
 func (s *Server) HandleGenerateKey() http.HandlerFunc {
 	return s.WrapHandlerFuncErr(func(w http.ResponseWriter, r *http.Request) error {
 		ctx := r.Context()

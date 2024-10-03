@@ -10,24 +10,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const pastebinURL = "https://pastebin.com/raw/pwtQLBiK"
-
 func main() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	log.Logger = log.Logger.Level(zerolog.DebugLevel)
 
 	ctx := context.Background()
 
-	config := client.NewConfiguration()
-	cdata, err := client.GetConfiguration(ctx, pastebinURL)
-	if err != nil {
-		log.Debug().Err(err).Msg("failed to load the latest config, using fallback")
-	} else {
-		log.Debug().Msg("using the latest config")
-		config.Update(cdata)
-	}
-
-	c := client.NewClient(config, true)
+	c := client.NewClient(true)
 
 	acc, err := c.NewAccountWithLicense(ctx)
 	if err != nil {

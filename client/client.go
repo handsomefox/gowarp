@@ -16,14 +16,11 @@ import (
 
 type Client struct {
 	cl      *http.Client
-	config  *Configuration
+	config  *ConfigurationData
 	logging bool
 }
 
-func NewClient(config *Configuration, logging bool) *Client {
-	if config == nil {
-		config = NewConfiguration()
-	}
+func NewClient(logging bool) *Client {
 	return &Client{
 		cl: &http.Client{
 			Transport: &http.Transport{
@@ -39,23 +36,15 @@ func NewClient(config *Configuration, logging bool) *Client {
 				ExpectContinueTimeout: 1 * time.Second,
 			},
 		},
-		config:  config,
+		config:  GetConfiguration(context.Background()),
 		logging: logging,
 	}
 }
 
-func (c *Client) UpdateConfig(config *ConfigurationData) {
-	if config == nil {
-		return
-	}
-	c.config.Update(config)
-	c.logInfo("config updated")
-}
-
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
-	req.Header.Set("CF-Client-Version", c.config.CFClientVersion())
-	req.Header.Set("Host", c.config.Host())
-	req.Header.Set("User-Agent", c.config.UserAgent())
+	req.Header.Set("CF-Client-Version", c.config.CFClientVersion)
+	req.Header.Set("Host", c.config.Host)
+	req.Header.Set("User-Agent", c.config.UserAgent)
 	req.Header.Set("Connection", "Keep-Alive")
 	return c.cl.Do(req)
 }
@@ -63,7 +52,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 func (c *Client) NewAccount(ctx context.Context) (*Account, error) {
 	defer c.logTiming("NewAccount", time.Now())
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.config.BaseURL()+"/reg", http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.config.BaseURL+"/reg", http.NoBody)
 	if err != nil {
 		c.logError(err)
 		return nil, ErrRegAccount
@@ -94,7 +83,7 @@ func (c *Client) AddReferrer(ctx context.Context, acc, referrer *Account) error 
 		return ErrEncodeAccount
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, c.config.BaseURL()+"/reg/"+acc.ID, bytes.NewBuffer(payload))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, c.config.BaseURL+"/reg/"+acc.ID, bytes.NewBuffer(payload))
 	if err != nil {
 		c.logError(err)
 		return ErrUpdateAccount
@@ -116,7 +105,7 @@ func (c *Client) AddReferrer(ctx context.Context, acc, referrer *Account) error 
 func (c *Client) RemoveDevice(ctx context.Context, acc *Account) error {
 	defer c.logTiming("RemoveDevice", time.Now())
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.config.BaseURL()+"/reg/"+acc.ID, http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.config.BaseURL+"/reg/"+acc.ID, http.NoBody)
 	if err != nil {
 		c.logError(err)
 		return ErrUpdateAccount
@@ -145,7 +134,7 @@ func (c *Client) ApplyKey(ctx context.Context, acc *Account, key string) error {
 	}
 
 	req, err := http.NewRequestWithContext(
-		ctx, http.MethodPut, c.config.BaseURL()+"/reg/"+acc.ID+"/account", bytes.NewBuffer(payload))
+		ctx, http.MethodPut, c.config.BaseURL+"/reg/"+acc.ID+"/account", bytes.NewBuffer(payload))
 	if err != nil {
 		c.logError(err)
 		return ErrUpdateAccount
@@ -167,7 +156,7 @@ func (c *Client) ApplyKey(ctx context.Context, acc *Account, key string) error {
 func (c *Client) GetAccountData(ctx context.Context, acc *Account) (*models.Account, error) {
 	defer c.logTiming("GetAccountData", time.Now())
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.config.BaseURL()+"/reg/"+acc.ID+"/account", http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.config.BaseURL+"/reg/"+acc.ID+"/account", http.NoBody)
 	if err != nil {
 		c.logError(err)
 		return nil, ErrGetAccountData
@@ -213,12 +202,12 @@ func (c *Client) NewAccountWithLicense(ctx context.Context) (*models.Account, er
 		return nil, err
 	}
 
-	n, err := rand.Int(rand.Reader, big.NewInt(int64(len(c.config.Keys())))) // [0; Length)
+	n, err := rand.Int(rand.Reader, big.NewInt(int64(len(c.config.Keys)))) // [0; Length)
 	if err != nil {
 		n = big.NewInt(0)
 	}
 
-	key := c.config.Keys()[n.Int64()]
+	key := c.config.Keys[n.Int64()]
 	if err := c.ApplyKey(ctx, keyAccount, key); err != nil {
 		return nil, err
 	}
