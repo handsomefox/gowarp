@@ -1,7 +1,9 @@
 # gowarp
 
-An app to generate Clodflare WARP+ keys, store them in a database and
-get as you need.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+An app to generate Cloudflare WARP+ keys, store them in a database, and
+hand them out as you need. It ships both an HTTP server and a CLI.
 
 ## How to run
 
@@ -35,3 +37,11 @@ be used to store the generated keys.
 ## Testing
 
 As of now, no tests are included, but later on I might add some.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Please report security-sensitive issues according to [SECURITY.md](SECURITY.md).
+
+## License
+
+Licensed under the [MIT License](LICENSE).
